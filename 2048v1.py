@@ -1,7 +1,6 @@
-#Suppress Tensorflow build from source messages
+# Suppress Tensorflow build from source messages
 from os import environ
 environ['TF_CPP_MIN_LOG_LEVEL']='2'
-
 import numpy as np
 #import tensorflow as tf
 from random import randrange, randint
@@ -11,9 +10,10 @@ from random import randrange, randint
 #from keras.models import Sequential, load_model
 #from keras.regularizers import l2
 
-#Board dimensions
-dim = (4,4)
-elements = 16
+# Board dimensions
+SIZE = 4
+DIMENSIONS = (SIZE,SIZE)  # (4,4)
+SIZE_SQRD = SIZE*SIZE  # 16
 
 
 class Board:
@@ -22,19 +22,20 @@ class Board:
     """
     
     def __init__(self):
-        self.board = np.zeros(dim)
+        self.board = np.zeros(DIMENSIONS)
         self.score = 0
     
     def draw(self):
         """Prints board state"""
-        print(str(2**self.board).replace('1',' ',16))
+        print(str(2**self.board).replace('1',' ',SIZE_SQRD))
     
-    def checkFull(self):
+    def check_full(self):
         """Checks if board is full and has no empty tiles"""
-        return np.count_nonzero(self.board) == elements
+        # Do I actually need this function?
+        return np.count_nonzero(self.board) == SIZE_SQRD
     
-    def generate(self):
-        """Places a 2 or 4 in a random empty tiles
+    def generate_tile(self):
+        """Places a 2 or 4 in a random empty tile
         Unhandled error if board is full
         Chance of 2 is 90%
         """
@@ -45,12 +46,50 @@ class Board:
         else:
             self.board[position[0],position[1]] = 2
 
-    def moveUp(self):
+    def merge_row(self, row):
+        """Merges input row and shifts tiles to the left side"""
+        final = []
+        base = 0
+        for tile in row:
+            if tile == 0: continue  # Skips zeros
+            if base == tile:
+                final.append(tile+1)
+                self.score += 2**(tile+1)
+                base = 0
+            else:
+                if base: final.append(base)  # Don't append zeros
+                base = tile
+        if base: final.append(base)
+        final += [0]*(SIZE-len(final))  # Pad with zeros
+        return np.array(final)
+                   
+    def move_left(self):
+        """Execute left move or returns False if unable"""
+        # Row by Row
+        moved = False
+        for i in range(SIZE):
+            row = self.board[i]
+            new_row = self.merge_row(row)
+            if any(new_row != row):
+                moved = True
+                self.board[i] = new_row
+        return moved         
+            
+    def move_up(self):
         """Execute up move or returns False if unable"""
+        self.board = np.transpose(self.board)
+        moved = self.move_left()
+        self.board = np.transpose(self.board)
+        return moved
         
+        #Alternatively, Column by Column
+        moved = False
+        for i in range(SIZE):
+            row = self.board[:,i]
+            new_row = self.merge_row(row)
+            if any(new_row != row):
+                moved = True
+                self.board[:,i] = new_row
+        return moved  
         
-        return False
-        
-        
-
 raise SystemExit(0)
