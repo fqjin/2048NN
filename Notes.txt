@@ -1,9 +1,11 @@
 # One-hot vs integer encoding of tile values
     Powers of two naturally suggest a binary representation. The powers of two represented as a bit sequence correspond to one-hot encoding. While tile values are not continuous, numerican comparison is important for the logic of the game. Representing the value as the exponent allows comparison and addition operations (for both the game logic and the neural network).
-    I will use integer encoding (i.e n=2^x)
-    
-    
+    I will use integer encoding (i.e x=2^n).
+
+
 # move function implementation
+    The merge_row function merges and tightens a single row to the left side. I have two ways to perform moves in non-left directions: 1) to transform, using transpose and flip, the matrix such that the desired direction points left, or 2) to change slicing operations such that input row to merge_row is oriented in the desired direction. Method 2) was previously names alt/alternative. I performed timing comparisons:
+    
     print(timeit.timeit('a.board=np.zeros((4,4))\nfor _ in range(8):\n    a.generate_tile()\na.move_up()',
           setup='from __main__ import a,np',number=10000))
     move_left   => 1.867    
@@ -13,13 +15,17 @@
     move_right_alt 2.092, 1.994
     move_down   => 2.044, 2.034
     move_down_alt  1.982, 1.960
-    alterative is marginally faster by about 0.8%
+    Alterative is marginally faster by about 0.8%
+    I will use the slicing method and update function names.
 
 
-# merge implementation
+# Merge implementation
+    Current move implementation performs the operation row by row using a merge_row function. I wondered whether this could be done via a single operation on the whole matrix, which uses np.where to get the coordinates of all nonzero tiles and then iterates through them to generate the new matrix. However, the generation process still works like a row-by-row system because it keep tracks on the current row to perform its calculations. I performed timing comparisons:
+    
     move_left         => 1.886  1.894, 1.851
     move_left_matrix  => 2.041, 2.012, 1.966
     matrix implementation is slower by about 6.9%
+    I will keep current implementation. Matrix implementation goes to unused code.
 
 
 # Monte Carlo tree search implementation
