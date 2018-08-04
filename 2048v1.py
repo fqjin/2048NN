@@ -82,6 +82,7 @@ class Board:
         self.board = np.transpose(self.board)
         return moved
         
+    def move_up_alt(self):
         #Alternatively, Column by Column
         moved = False
         for i in range(SIZE):
@@ -91,5 +92,39 @@ class Board:
                 moved = True
                 self.board[:,i] = new_row
         return moved  
+        
+    def move_right(self):
+        """Execute right move or returns False if unable"""
+        self.board = np.fliplr(self.board)
+        moved = self.move_left()
+        self.board = np.fliplr(self.board)
+        return moved
+        
+    def move_right_alt(self):
+        moved = False
+        for i in range(SIZE):
+            row = self.board[i,::-1]
+            new_row = self.merge_row(row)
+            if any(new_row != row):
+                moved = True
+                self.board[i,::-1] = new_row
+        return moved
+            
+    def move_down(self):
+        """Execute down move or returns False if unable"""
+        self.board = np.flipud(np.transpose(self.board))
+        moved = self.move_left()
+        self.board = np.flipud(np.transpose(self.board))
+        return moved
+        
+    def move_down_alt(self):
+        moved = False
+        for i in range(SIZE):
+            row = self.board[::-1,i]
+            new_row = self.merge_row(row)
+            if any(new_row != row):
+                moved = True
+                self.board[::-1,i] = new_row
+        return moved
         
 raise SystemExit(0)
