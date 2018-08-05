@@ -2,6 +2,8 @@
 from os import environ
 environ['TF_CPP_MIN_LOG_LEVEL']='2'
 import numpy as np
+# Do not use scientific notation:
+np.set_printoptions(suppress = True)
 from random import randrange, randint
 #import tensorflow as tf
 #import keras
@@ -176,7 +178,7 @@ def play_fixed(press_enter = False):
     """ Run 2048 with the fixed move priority L,U,R,D.
         press_enter (bool) : Defaults to False
     """
-    # Score: 3380, 2636, 2628, 1480, 1152. Game over with 128 or 256 block.
+    # Score: 3380, 2636, 2628, 1480, 1152. Game over with 128 or 256 tile.
     game = Board()
     game.generate_tile()
     game.generate_tile()
@@ -216,8 +218,8 @@ def MCTS(game, method = method_fixed, number = 5):
     
     Args:
         game (Board): the starting game state
-        method: method for selecting moves to calculate lines
-        number (int): # of lines to try for each move
+        method: method for selecting moves. Default is method_fixed
+        number (int): # of lines to try for each move. Default is 5
     Returns:
         scores for each move as a list [Left, Up, Right, Down]
         
@@ -253,8 +255,31 @@ def MCTS(game, method = method_fixed, number = 5):
     return scores_list
     
     
+def play_MCTS(game, number = 5):
+    """ 
+    Play a game using the default MCTS
+    Args:
+        game (Board): the starting game state
+        number (int): Default is 5
+    """
+    # Score: 6300, 11536, 10520, with 1024 tile
+    # With number = 10, score is 15520 with a 1024, 512, 256, and two 64 tiles
+    while True:
+        scores_list = MCTS(game, number = number)
+        # print(scores_list)
+        for i in np.flipud(np.argsort(scores_list)):
+            if game.moves[i]():
+                game.generate_tile()
+                game.draw()
+                break
+        else:        
+            print('Game Over')
+            break
+
+
 # FOR TESTING
 a = Board()
 a.generate_tile()
 a.generate_tile()
+a.draw()
 
