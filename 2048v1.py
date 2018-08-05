@@ -24,10 +24,20 @@ class Board:
     def __init__(self):
         self.board = np.zeros(DIMENSIONS)
         self.score = 0
+        self.moves = [self.move_left, 
+                      self.move_up, 
+                      self.move_right, 
+                      self.move_down]
+    
+    def restore(self, board, score):
+        """Sets board and score to input values"""
+        self.board = np.copy(board)
+        self.score = score
     
     def draw(self):
         """Prints board state"""
         print(str(2**self.board).replace('1.',' .',SIZE_SQRD))
+        print(' Score : {}'.format(self.score))
     
     def check_full(self):
         """Checks if board is full and has no empty tiles"""
@@ -55,7 +65,7 @@ class Board:
             if tile == 0: continue  # Skips zeros
             if base == tile:
                 final.append(tile+1)
-                self.score += 2**(tile+1)
+                self.score += 2**(int(tile)+1)
                 base = 0
             else:
                 if base: final.append(base)  # Don't append zeros
@@ -193,4 +203,57 @@ def play_fixed(press_enter = False):
         else:
             print('Game Over')
             break
+
+
+def method_fixed(board):
+    """Returns L,U,R,D move priority as a tuple"""
+    return (0,1,2,3)
+    
+
+def MCTS(game, method = method_fixed, number = 5):
+    """
+    Run Monte Carlo Tree Search
+    
+    Args:
+        game (Board): the starting game state
+        method: method for selecting moves to calculate lines
+        number (int): # of lines to try for each move
+    Returns:
+        scores for each move as a list [Left, Up, Right, Down]
+        
+    """
+    # With a neural network, it may be more efficient to pass mulitple boards simultaneously
+    original_board = np.copy(game.board)
+    original_score = game.score
+    scores_list = [0,0,0,0]
+    
+    for i in range(4):
+        if not game.moves[i]():
+            scores_list[i] = original_score
+            game.restore(original_board, original_score)
+        else:
+            for _ in range(number):
+                game.restore(original_board, original_score)
+                game.moves[i]()
+                while True:
+                    move_order = method(game.board)
+                    for j in range(4):
+                        if game.moves[move_order[j]]():
+                            game.generate_tile()
+                            break
+                    else:        
+                        # print('Game Over')
+                        # game.draw()
+                        break
+                scores_list[i] += game.score       
+            scores_list[i] /= number  # Calculate average final score
+            game.restore(original_board, original_score)
+            
+    return scores_list
+    
+    
+# FOR TESTING
+a = Board()
+a.generate_tile()
+a.generate_tile()
 
