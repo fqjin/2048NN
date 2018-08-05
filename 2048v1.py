@@ -235,6 +235,7 @@ def MCTS(game, method = method_fixed, number = 5):
             for _ in range(number):
                 game.restore(original_board, original_score)
                 game.moves[i]()
+                game.generate_tile()
                 while True:
                     move_order = method(game.board)
                     for j in range(4):
