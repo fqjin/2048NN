@@ -27,7 +27,7 @@ class Board:
     
     def draw(self):
         """Prints board state"""
-        print(str(2**self.board).replace('1',' ',SIZE_SQRD))
+        print(str(2**self.board).replace('1.',' .',SIZE_SQRD))
     
     def check_full(self):
         """Checks if board is full and has no empty tiles"""
@@ -109,6 +109,55 @@ class Board:
                 moved = True
                 self.board[::-1,i] = new_row
         return moved
-    
-    
-raise SystemExit(0)
+
+
+# Can split into separate modules
+def play_manual():
+    """Play 2048 manually with arrow keys"""
+    import curses
+    screen = curses.initscr()
+    curses.noecho()
+    curses.cbreak()
+    screen.keypad(True)
+    try:
+        
+        def draw_curses(self,screen):
+            screen.erase()
+            screen.addstr(str(2**self.board).replace('1.',' .',SIZE_SQRD))
+            screen.addstr('\n Score : {}'.format(self.score))
+            
+        Board.draw_curses = draw_curses
+        game = Board()
+        game.generate_tile()
+        game.generate_tile()
+        game.draw_curses(screen)
+
+        while True:
+            char = screen.getch()
+            if char == ord('q'):
+                break     
+            elif char == curses.KEY_LEFT:
+                if game.move_left():
+                    game.generate_tile()
+                    game.draw_curses(screen)
+            elif char == curses.KEY_UP:
+                if game.move_up():
+                    game.generate_tile()
+                    game.draw_curses(screen)
+            elif char == curses.KEY_RIGHT:
+                if game.move_right():
+                    game.generate_tile()
+                    game.draw_curses(screen)
+            elif char == curses.KEY_DOWN:
+                if game.move_down():
+                    game.generate_tile()
+                    game.draw_curses(screen)   
+                    
+    finally:
+        curses.nocbreak()
+        screen.keypad(False)
+        curses.echo()
+        curses.endwin()
+        print('Game Over')
+        game.draw()
+
