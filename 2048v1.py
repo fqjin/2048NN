@@ -161,3 +161,36 @@ def play_manual():
         print('Game Over')
         game.draw()
 
+
+def play_fixed(press_enter = False):
+    """ Run 2048 with the fixed move priority L,U,R,D.
+        press_enter (bool) : Defaults to False
+    """
+    # Score: 3380, 2636, 2628, 1480, 1152. Game over with 128 or 256 block.
+    game = Board()
+    game.generate_tile()
+    game.generate_tile()
+    game.draw()
+    while True:
+        if press_enter and input() == 'q':
+            break
+        if game.move_left():
+            game.generate_tile()
+            game.draw()
+            continue
+        elif game.move_up():
+            game.generate_tile()
+            game.draw()
+            continue
+        elif game.move_right():
+            game.generate_tile()
+            game.draw()
+            continue    
+        elif game.move_down():
+            game.generate_tile()
+            game.draw()
+            continue
+        else:
+            print('Game Over')
+            break
+
