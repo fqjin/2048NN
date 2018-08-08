@@ -1,16 +1,7 @@
-# Suppress Tensorflow build from source messages
-from os import environ
-environ['TF_CPP_MIN_LOG_LEVEL']='2'
+from random import randrange, randint
 import numpy as np
 # Do not use scientific notation:
 np.set_printoptions(suppress = True)
-from random import randrange, randint
-#import tensorflow as tf
-#import keras
-#from keras.layers import Activation, Dense, Flatten, Conv2D
-#from keras.layers.normalization import BatchNormalization
-#from keras.models import Sequential, load_model
-#from keras.regularizers import l2
 
 # Board dimensions
 SIZE = 4
@@ -40,11 +31,6 @@ class Board:
         """Prints board state"""
         print(str(2**self.board).replace('1.',' .',SIZE_SQRD))
         print(' Score : {}'.format(self.score))
-    
-    def check_full(self):
-        """Checks if board is full and has no empty tiles"""
-        # Do I actually need this function?
-        return np.count_nonzero(self.board) == SIZE_SQRD
     
     def generate_tile(self):
         """ Places a 2 or 4 in a random empty tile
@@ -123,7 +109,6 @@ class Board:
         return moved
 
 
-# Can split into separate modules
 def play_manual():
     """Play 2048 manually with arrow keys"""
     import curses
@@ -178,7 +163,6 @@ def play_fixed(press_enter = False):
     """ Run 2048 with the fixed move priority L,U,R,D.
         press_enter (bool) : Defaults to False
     """
-    # Score: 3380, 2636, 2628, 1480, 1152. Game over with 128 or 256 tile.
     game = Board()
     game.generate_tile()
     game.generate_tile()
@@ -224,7 +208,6 @@ def MCTS(game, method = method_fixed, number = 5):
         scores for each move as a list [Left, Up, Right, Down]
         
     """
-    # With a neural network, it may be more efficient to pass mulitple boards simultaneously
     original_board = np.copy(game.board)
     original_score = game.score
     scores_list = [0,0,0,0]
@@ -262,8 +245,6 @@ def play_MCTS(game, number = 5):
         game (Board): the starting game state
         number (int): Default is 5
     """
-    # Score: 6300, 11536, 10520, with 1024 tile
-    # With number = 10, score is 15520 with a 1024, 512, 256, and two 64 tiles
     while True:
         scores_list = MCTS(game, number = number)
         # print(scores_list)
@@ -278,6 +259,7 @@ def play_MCTS(game, number = 5):
 
 
 # FOR TESTING
+print('a = Board()')
 a = Board()
 a.generate_tile()
 a.generate_tile()
