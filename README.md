@@ -16,8 +16,8 @@ Language: python3
 Dependencies:
 - random
 - numpy
-- tensorflow
-- keras
+- ~~tensorflow~~
+- ~~keras~~
 - curses (for manual play)
 
 Module documentation:
@@ -34,3 +34,4 @@ Current version has no initial bias for starting moves and will search each move
 Starting after the initial move, a playing method is used to generate further moves until the game is over. 
 The result is a 'line' in the tree. 
 This process is repeated a number of times and the final scores are combined to estimate the true score of each move.
+
