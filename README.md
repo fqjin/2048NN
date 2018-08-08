@@ -1,6 +1,8 @@
 # 2048NN
 ### Train a neural network to play 2048
 
+### Stable Version 1: 2048 game and MCTS, single script, without neural network
+
 Numerous AI algorithms have been delevoped to play the game of "2048".
 
 This project seeks to implement an algorithm (inspired by AlphaZero) which uses:
