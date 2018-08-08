@@ -32,7 +32,3 @@ Current version has no initial bias for starting moves and will search each move
 Starting after the initial move, a playing method is used to generate further moves until the game is over. 
 The result is a 'line' in the tree. 
 This process is repeated a number of times and the final scores are combined to estimate the true score of each move.
-
-Note 1: This method is not truly a 'tree search' because it does not need to remember intermediate states between the starting and final states. It does not use information about previous searches for generating new lines. Each line is able to be unique because of the probabilistic nature of new tile value and placement.
-
-Note 2: A more intelligent generating method (rather than fixed move order), such as with a neural network, will significantly improve the relevance of each line to the true value of each starting move. This will increase the accuracy of of the search as well as decrease the number of lines needed for a meaningful result.
