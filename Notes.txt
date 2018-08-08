@@ -28,11 +28,34 @@
     I will keep current implementation. Matrix implementation goes to unused code.
 
 
-# Monte Carlo tree search implementation
-
-
 # How to reset back to starting state without copying object
     1. Save current board and score
     2. Trace a line
     3. Record score (and board)
     4. Set board and score back to starting state
+
+
+# Monte Carlo tree search implementation
+    Initial version requires no input from neural networks. Each of the four moves are explored equally with a number of lines. The original state is saved, and multiple lines are generated using a move-selection method until the game-over state is reached. Final scores are combined using mean to give the expected value estimate for final score for each move. Alternatives to explore include median, mode, and variance. 
+    Using this MCTS method to choose moves (implemented in play_MCTS) is significantly superior to using the fixed move order (L,U,R,D) method. Note that the MCTS does use the fixed method to generate lines. Representative results:
+    
+    play_fixed:
+        Score: 3380, 2636, 2628, 1480, 1152 (4000s also observed)
+        Max tile: 128 or 256
+    
+    play_MCTS (number = 5):
+        Score: 6300, 11536, 10520
+        Max tile: 1024
+    play_MCTS (number = 10):
+        Score: 15520 
+        Max tile: 1024 also with 512, 256, and two 64 tiles
+
+    Note 1: This method is not truly a 'tree search' because it does not need to remember intermediate states between the starting and final states. It does not use information about previous searches for generating new lines. Each line is able to be unique because of the probabilistic nature of new tile value and placement.
+
+    Note 2: A more intelligent generating method (rather than fixed move order), such as with a neural network, will significantly improve the relevance of each line to the true value of each starting move. This will increase the accuracy of of the search as well as decrease the number of lines needed for a meaningful result.
+
+
+# Future MCTS implementation involving neural network
+    The following changes should be considered:
+    - Multi-armed bandit for exploring the four moves. If the NN prefers one move over the others, that move can be explored more. However, in this setting, it may actually be detrimental. There is no benefit to exploring the same line more besides the numerical law of large numbers because the MCTS implementation does not use previous search knowledege. Exploring the other moves thoroughly gives better comparison between moves to find the optimal one. This is also easier because the small number of moves (4 directions).
+    - Batch generation. Explore multiple lines simultaneously to allow the NN to generate moves in batches. This is presumably more efficient because of tensorflow/keras efficiency with batches (being treated as additional dimensions in an array).
