@@ -43,8 +43,8 @@ class Board:
             Unhandled error if board is full
             Chance of 2 is 90%
         """
-        open = np.transpose(np.where(self.board == 0))
-        position = open[randrange(len(open))]
+        empty = np.transpose(np.where(self.board == 0))
+        position = empty[randrange(len(empty))]
         if randint(0,9):
             self.board[position[0],position[1]] = 1
         else:
