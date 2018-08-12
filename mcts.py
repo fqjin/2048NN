@@ -9,7 +9,7 @@ def method_fixed(board):
     return (0,1,2,3)
     
 
-def MCTS(game, method = method_fixed, number = 5):
+def mcts(game, method = method_fixed, number = 5):
     """
     Run Monte Carlo Tree Search
     
@@ -52,17 +52,15 @@ def MCTS(game, method = method_fixed, number = 5):
     return scores_list
     
     
-def play_MCTS(game, number = 5):
+def play_mcts(game, number = 5):
     """ 
-    Play a game using the default MCTS
+    Play a game using the default mcts
     Args:
         game (Board): the starting game state
         number (int): Default is 5
     """
-    # Score: 6300, 11536, 10520, with 1024 tile
-    # With number = 10, score is 15520 with a 1024, 512, 256, and two 64 tiles
     while True:
-        scores_list = MCTS(game, number = number)
+        scores_list = mcts(game, number = number)
         # print(scores_list)
         for i in np.flipud(np.argsort(scores_list)):
             if game.moves[i]():
