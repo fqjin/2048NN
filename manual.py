@@ -3,7 +3,6 @@ from board import *
 # includes Board class
 # includes randrange, randint, numpy as np
 
-# Can compact code using Board.moves[i] to call different moves
 def play_manual():
     """Play 2048 manually with arrow keys"""
     import curses
@@ -26,26 +25,18 @@ def play_manual():
 
         while True:
             char = screen.getch()
-            if char == ord('q'):
-                break     
-            elif char == curses.KEY_LEFT:
-                if game.move_left():
+            i = 0
+            if char == ord('q'): break
+            elif char == curses.KEY_LEFT: i = 1
+            elif char == curses.KEY_UP:   i = 2
+            elif char == curses.KEY_RIGHT:i = 3
+            elif char == curses.KEY_DOWN: i = 4
+            if i:
+                if game.moves[i-1]():
                     game.generate_tile()
                     game.draw_curses(screen)
-            elif char == curses.KEY_UP:
-                if game.move_up():
-                    game.generate_tile()
-                    game.draw_curses(screen)
-            elif char == curses.KEY_RIGHT:
-                if game.move_right():
-                    game.generate_tile()
-                    game.draw_curses(screen)
-            elif char == curses.KEY_DOWN:
-                if game.move_down():
-                    game.generate_tile()
-                    game.draw_curses(screen)   
                     
-    finally:
+    finally:  # cleanup curses
         curses.nocbreak()
         screen.keypad(False)
         curses.echo()
@@ -58,7 +49,6 @@ def play_fixed(press_enter = False):
     """ Run 2048 with the fixed move priority L,U,R,D.
         press_enter (bool) : Defaults to False
     """
-    # Score: 3380, 2636, 2628, 1480, 1152. Game over with 128 or 256 tile.
     game = Board()
     game.generate_tile()
     game.generate_tile()
@@ -66,22 +56,11 @@ def play_fixed(press_enter = False):
     while True:
         if press_enter and input() == 'q':
             break
-        if game.move_left():
-            game.generate_tile()
-            game.draw()
-            continue
-        elif game.move_up():
-            game.generate_tile()
-            game.draw()
-            continue
-        elif game.move_right():
-            game.generate_tile()
-            game.draw()
-            continue    
-        elif game.move_down():
-            game.generate_tile()
-            game.draw()
-            continue
+        for i in range(4):
+            if game.moves[i]():
+                game.generate_tile()
+                game.draw()
+                break
         else:
             print('Game Over')
             break
