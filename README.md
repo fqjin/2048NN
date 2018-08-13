@@ -9,9 +9,9 @@ This project seeks to implement an algorithm (inspired by AlphaZero) which uses:
 - reinforcement learning through self-play
 - (dual policy & value networks were not required)
 
-Language: python3
+#### Language: python3
 
-Dependencies:
+#### Dependencies:
 - random
 - numpy
 - tensorflow
@@ -33,6 +33,10 @@ mcts.py:
 mcts_nn.py:
 - generate_model: creates a new keras neural network
 - get_model: loads a previously-saved neural network
+- play_nn: autoplay using a neural network to select moves (without using monte-carlo search)
+- mcts_nn: performs monte-carlo search using the neural network to generate lines
+- make_data: play a game using mcts_nn, returns every board in main line and the final mcts move scores
+- training: train a neural network using a set of boards and MCTS search
 
 #### MCTS process:
 
