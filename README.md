@@ -11,11 +11,10 @@ This project seeks to implement an algorithm (inspired by AlphaZero) which uses:
 
 #### Language: python3
 
-#### Dependencies:
+#### Explicit Dependencies:
 - random
 - numpy
-- tensorflow
-- keras
+- keras (tensorflow backend)
 - curses (for manual play)
 
 #### Module documentation:
