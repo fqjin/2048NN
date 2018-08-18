@@ -59,3 +59,37 @@
     The following changes should be considered:
     - Multi-armed bandit for exploring the four moves. If the NN prefers one move over the others, that move can be explored more. However, in this setting, it may actually be detrimental. There is no benefit to exploring the same line more besides the numerical law of large numbers because the MCTS implementation does not use previous search knowledege. Exploring the other moves thoroughly gives better comparison between moves to find the optimal one. This is also easier because the small number of moves (4 directions).
     - Batch generation. Explore multiple lines simultaneously to allow the NN to generate moves in batches. This is presumably more efficient because of tensorflow/keras efficiency with batches (being treated as additional dimensions in an array).
+
+
+# Ideas
+	1. If 3 moves are illegal, then do not need to run MCTS on the last move. Counter argument is that I cannot produce a score if MCTS is not run. However, it could be a large increase in efficiency.
+	2. Initialization regularization with test set to make sure LURD distribution is uniform. Alternative is to first train on results of number=10 fixed method MCTS results.
+	3. Reinforcement has two options: pass the move with maximum expected value (one-hot) vs pass all four scores normalized to maximum.
+	4. Efficiency of MCTS will improve slightly as the NN learns to select legal vs illegal moves, thus decreasing the amount of times MCTS has to check illegal moves.
+	
+
+# NN training results (v2)
+    First proper NN.
+    First try fully connected without convolution by flattening 4x4 array into a size 16 vector. CNN would be better theoretically because spatial orientation matters in this game.
+    First try without L2 regularizer.
+    Architecture: 16=>16-BatchNorm-relu-16-BatchNorm-relu-8-relu-4-softmax, mean sqr err, sgd
+    Output is defined as score difference from current state, normalized to the highest of the four. Last board is removed because all four moves have 0 improvement in score, causing divide by zero error.
+    First try pure self-learning without relying on starter fixed_order training data.
+    Did not implement batch mcts yet. Computing linearlly is slow, taking ~5 minutes to complete a game.
+    Training after each game, using batch training with batch size = 32 (default) and over 10 epochs
+    
+    v2  init training:                         258 steps
+    v2-1 training: score 7508,  max tile 512,  528 steps
+    v2-2 training: score 12976, max tile 1024, 756 steps
+    v2-3 training: score 7188,  max tile 512,  497 steps (unlucky or overfitting?)
+    v2-4 training: score 7112,  max tile 512,  483 steps (overfitting)
+    v2-5 training: score 3392,  max tile 256,  283 steps
+    v2-6 training: score 12464, max tile 1024, 747 steps
+    v2-7, model is overfitted, giving the order D,R,U,L for any input board
+
+    The problem is overfitting. Possible causes: 
+    -poor architecture: add dropout layer, change number or size of layers
+    -too little data: generate more before training
+    -too many epochs: use 5 more less
+    -poor output definition: change to one-hot encoding and softmax cross entropy
+    -training data skewed (class imbalance): however might want to preserve this bias, use a validation set or monitor distribution of output for overtraining
