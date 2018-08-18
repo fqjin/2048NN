@@ -15,13 +15,17 @@ class Board:
         Numbers are stored as log_2 format
     """
     
-    def __init__(self):
+    def __init__(self, gen = False):
         self.board = np.zeros(DIMENSIONS)
         self.score = 0
         self.moves = [self.move_left, 
                       self.move_up, 
                       self.move_right, 
                       self.move_down]
+        if gen:
+            self.generate_tile()
+            self.generate_tile()
+            self.draw()
     
     def restore(self, board, score):
         """Sets board and score to input values"""
