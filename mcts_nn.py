@@ -14,11 +14,9 @@ from os import environ
 environ['TF_CPP_MIN_LOG_LEVEL']='2'
 
 
-def generate_model(name):
+def generate_model(number):
     # Architecture
-    # First try fully connected without convolution. CNN would be more better theoretically given spatial element.
-    # First try without L2-regularizer
-    """Creates and returns a new NN, and saves as 'nn2048_name_.h5'"""
+    """Creates and returns a new NN, and saves as 'nn2048v_number_.h5'"""
     model = Sequential()
     model.add(Dense(16, input_dim = SIZE_SQRD))
     model.add(BatchNormalization())
@@ -30,17 +28,18 @@ def generate_model(name):
     model.add(Dense(4, activation = 'softmax', kernel_initializer='uniform'))
     model.compile(loss='mean_squared_error', optimizer='sgd')
     
-    model.save('nn2048'+name+'.h5')
-    print('Saved as: nn2048'+name+'.h5')
+    model.save('nn2048v'+number+'.h5')
+    print('Saved as: nn2048v'+number+'.h5')
     return model
 
     
-def get_model(name):
-    """Return the NN 'nn2048_name_.h5'"""
-    return load_model('nn2048'+name+'.h5')
+def get_model(number):
+    """Return the NN 'nn2048v_number_.h5'"""
+    return load_model('nn2048v'+number+'.h5')
     
     
 def play_nn(game, model, press_enter = False):
+    """Automatically play through game using neural network choices (w/o monte carlo)"""
     while True:
         if press_enter and input() == 'q':
             break
@@ -57,6 +56,7 @@ def play_nn(game, model, press_enter = False):
     
     
 def method_model(board, model):
+    # Unused
     scores_list = model.predict(board.reshape((1,SIZE_SQRD)))[0]
     return np.flipud(np.argsort(scores_list))
 
@@ -70,8 +70,7 @@ def mcts_nn(game, model, number = 5):
         model (Sequential): keras NN for selecting moves
         number (int): # of lines to try for each move. Default is 5
     Returns:
-        scores for each move as a list [Left, Up, Right, Down]
-        
+        scores for each move as a list [Left, Up, Right, Down]  
     """
     # With a neural network, it may be more efficient to pass mulitple boards simultaneously
     original_board = np.copy(game.board)
@@ -103,8 +102,10 @@ def mcts_nn(game, model, number = 5):
     
     
 def make_data(game, model, number = 5):
-    # First try without batching mcts, but it is slow. It takes 5 minutes to complete a game.
-    # First try pure self-learning without relying on starter fixed_order training data
+    """
+    Plays through one game using monte-carlo search.
+    Returns all boards and computed scores for the main line for training use.
+    """
     boards = []
     results = []
     while True:
@@ -131,7 +132,8 @@ def make_data(game, model, number = 5):
     return boards, results
 
             
-def training(boards, results, model, epochs = 10):
+def training(boards, results, model, epochs = 5):
+    """Trains a model using model.fit, with input set of boards and associated results"""
     model.fit(np.vstack(boards), np.vstack(results), epochs)
 
 
@@ -141,3 +143,4 @@ a = Board()
 a.generate_tile()
 a.generate_tile()
 a.draw()
+
