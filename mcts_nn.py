@@ -28,14 +28,15 @@ def generate_model(number):
     model.add(Dense(4, activation = 'softmax', kernel_initializer='uniform'))
     model.compile(loss='mean_squared_error', optimizer='sgd')
     
-    model.save('nn2048v'+number+'.h5')
-    print('Saved as: nn2048v'+number+'.h5')
+    # number should be str but can be other types
+    model.save('nn2048v'+str(number)+'.h5')
+    print('Saved as: nn2048v'+str(number)+'.h5')
     return model
 
     
 def get_model(number):
     """Return the NN 'nn2048v_number_.h5'"""
-    return load_model('nn2048v'+number+'.h5')
+    return load_model('nn2048v'+str(number)+'.h5')
     
     
 def play_nn(game, model, press_enter = False):
@@ -70,7 +71,7 @@ def mcts_nn(game, model, number = 5):
         model (Sequential): keras NN for selecting moves
         number (int): # of lines to try for each move. Default is 5
     Returns:
-        scores for each move as a list [Left, Up, Right, Down]  
+        score difference from current state for each move as a list [L, U, R, D]  
     """
     # With a neural network, it may be more efficient to pass mulitple boards simultaneously
     original_board = np.copy(game.board)
@@ -79,7 +80,6 @@ def mcts_nn(game, model, number = 5):
     
     for i in range(4):
         if not game.moves[i]():
-            scores_list[i] = original_score
             game.restore(original_board, original_score)
         else:
             for _ in range(number):
@@ -94,8 +94,9 @@ def mcts_nn(game, model, number = 5):
                             break
                     else:
                         break
-                scores_list[i] += game.score       
+                scores_list[i] += game.score  # Add to score for each run
             scores_list[i] /= number  # Calculate average final score
+            scores_list[i] -= original_score  # Subtract off original score
             game.restore(original_board, original_score)
             
     return scores_list
@@ -112,18 +113,17 @@ def make_data(game, model, number = 5):
         scores_list = mcts_nn(game, model, number)
         print(scores_list)
         boards.append(game.board.flatten())
-        change = scores_list - game.score
-        if sum(change) == 0:
+        if sum(scores_list) == 0:
             results.append(np.full(4,0.25))
         else: 
-            results.append(change / sum(change))
+            results.append(scores_list / sum(scores_list))
         
         for i in np.flipud(np.argsort(scores_list)):
             if game.moves[i]():
                 game.generate_tile()
                 game.draw()
                 break
-        else:        
+        else:       
             print('Game Over')
             boards.pop()
             results.pop()            
@@ -138,9 +138,6 @@ def training(boards, results, model, epochs = 5):
 
 
 # FOR TESTING
-print('a = Board()')
-a = Board()
-a.generate_tile()
-a.generate_tile()
-a.draw()
+print('a = Board(gen = True)')
+a = Board(gen = True)
 
