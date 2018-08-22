@@ -121,14 +121,12 @@ def make_data(game, model, number = 5):
         scores_list = mcts_nn(game, model, number)
         print(scores_list)
         order = np.flipud(np.argsort(scores_list))
-        
-        boards.append(game.board.flatten())
-        if sum(scores_list) == 0:
-            boards.pop()
-            print('!! POPPED BOARD !!')
-        else: 
+        if sum(scores_list) > 0:
+            boards.append(game.board.flatten())
             results.append(order[0])
-        
+        else:
+            print('Null scores list')
+            
         for i in order:
             if game.moves[i]():
                 game.generate_tile()
@@ -136,9 +134,6 @@ def make_data(game, model, number = 5):
                 break
         else:       
             print('Game Over')
-            # I think the last board will have zero scores and board will be popped above
-            # boards.pop()
-            # results.pop()
             break
             
     return boards, results
