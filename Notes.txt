@@ -63,6 +63,7 @@
 
 # Ideas
 	1. If 3 moves are illegal, then do not need to run MCTS on the last move. Counter argument is that I cannot produce a score if MCTS is not run. However, it could be a large increase in efficiency.
+    This may be implemented after batching mcts is implemented, allowing immediate checking for only one legal move.
 	2. Initialization regularization with test set to make sure LURD distribution is uniform. Alternative is to first train on results of number=10 fixed method MCTS results.
 	3. Reinforcement has two options: pass the move with maximum expected value (one-hot) vs pass all four scores normalized to maximum.
 	4. Efficiency of MCTS will improve slightly as the NN learns to select legal vs illegal moves, thus decreasing the amount of times MCTS has to check illegal moves.
@@ -92,4 +93,30 @@
     -too little data: generate more before training
     -too many epochs: use 5 more less
     -poor output definition: change to one-hot encoding and softmax cross entropy
-    -training data skewed (class imbalance): however might want to preserve this bias, use a validation set or monitor distribution of output for overtraining
+    -training data skewed (class imbalance): however might want to preserve this bias, use a validation set or monitor output distribution for overtraining
+
+    
+# NN training results (v3)
+    First solution is to decrease epoch number to 5 and to change training to one-hot/cross-entropy. This loses any secondary ordering training, but it should be inferred by the network. Of course if network always chooses a legal move, secondary order doesn't matter.
+    
+    v3-0 init:  score 2416,  max tile 256,  204 steps
+    v3-1 train: score 15512, max tile 1024, 902 steps
+    - note both v3-1 and v3-2 already have class imbalance problem: output order is [1,0,3,2] for all 902 boards
+    - class imbalance is actually not too bad: {0: .307, 1: .352, 2: .146, 3: .195}
+    - perhaps there is not enough training?, as in the softmax results are getting closer to flipping the switch over but have not yet reached the threshold and so output is always the same. I will try training the next set until loss stabilizes.
+    v3-2 train: score 15408, max tile 1024, 979 steps, accidentally deleted data
+    v3-2 train: score 14444, max tile 1024, 844 steps
+    - started seeing bimodal distribution for 1st move choice at 100 epochs (loss=1.3096)
+    - started seeing trimodal distribution for 2nd move choice at 200 epochs (loss=1.2609)
+    - at 500 epochs (loss=1.0965), all four moves are in 1st choice, {0: .359, 1: .417, 2: .075, 3: .149}
+    - both 200(3-3x) and 500(3-3y) epochs version have relatively poor performance in pure nn play
+    v3-3x   :   score 11956, max tile 1024, 708 steps, {0: .301, 1: .278, 2: .165, 3: .256}
+    - 200 epochs (loss=1.1593) 1st choice changes from bimodal to all 4 moves {0: .278, 1: .497, 2: .081, 3: .144}
+    v3-4x   :   score 12956, max tile 1024, 786 steps, {0: .244, 1: .296, 2: .237, 3: .223}
+    v3-5x   :   score 11272, max tile 1024, 643 steps, {0: .267, 1: .260, 2: .224, 3: .249}
+    - consistently getting 1024 tile. Fixed_method mcts often dies before reaching 1024, but can also get lucky as well. How to prove that NN is making intelligent decisions, given that pure play with NN has very poor performance?
+    
+    
+# Batch mcts_nn
+    Running make_data takes a long time (5 minutes). This will only get worse as lines look deeper and games last longer. To save future time, I should get to work on implementing batch mcts_nn. If 5 lines per move direction, up to 20 lines played simultaneously by the neural network. This is assuming that NN computation is the rate-limiting step. I should check with cProfile.
+    
