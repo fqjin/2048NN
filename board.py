@@ -30,7 +30,14 @@ class Board:
     def restore(self, board, score):
         """Sets board and score to input values"""
         self.board = np.copy(board)
-        self.score = score
+        self.score = score  # immutable does not need copying
+        
+    def copy(self):
+        """Returns a copy as a new Board object"""
+        temp = Board()
+        temp.board = np.copy(self.board)
+        temp.score = self.score
+        return temp
     
     def draw(self):
         """Prints board state"""
