@@ -2,7 +2,7 @@ from board import *
 # includes SIZE, DIMENSIONS, SIZE_SQRD
 # includes Board class
 # includes randrange, randint, numpy as np
-import keras
+# import keras
 
 
 def mcts_batch(game, model, number = 5):
@@ -57,7 +57,7 @@ def mcts_batch(game, model, number = 5):
         lines = new_lines
     
     for i in range(4):   
-        if scores_list[i]:  
+        if scores_list[i]:
             scores_list[i] /= number  # Calculate average final score
             scores_list[i] -= original_score  # Subtract off original score
             
