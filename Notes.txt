@@ -118,5 +118,15 @@
     
     
 # Batch mcts_nn
-    Running make_data takes a long time (5 minutes). This will only get worse as lines look deeper and games last longer. To save future time, I should get to work on implementing batch mcts_nn. If 5 lines per move direction, up to 20 lines played simultaneously by the neural network. This is assuming that NN computation is the rate-limiting step. I should check with cProfile.
+    Running make_data takes a long time (5-10 minutes). This will only get worse as lines look deeper and games last longer. To save future time, I should get to work on implementing batch mcts_nn. If 5 lines per move direction, up to 20 lines played simultaneously by the neural network. This is assuming that NN computation is the rate-limiting step. I should check with cProfile.
+    Results: mcts_batch faster than mcts_nn: 3x at number = 5, 4x at number = 50
+    cProfile slows the script down. Using timeit:
+    -mcts_nn    : 356 seconds to reach score 14472
+    -mcts_batch :  60 seconds to reach score 7984
+                   81 seconds to reach score 11760
+                  176 seconds to reach score 12148 (number = 10)
+    Odd conundrum: make_data with batch process results in lower scores on average. I tested many ways to make sure mcts_batch and mcts_nn ran the same logic and game the same results. Yet still there seems to be a difference!
     
+
+# Poor mcts_batch performanc
+    Simplify debugging by making game deterministic by removing randomness from generate_tile. After removing randomness, old mcts_nn and mcts_batch give the same results. make_data also gives the same main line and predictions for both. This localizes the difference to how random tiles are called or how different lines are combined.

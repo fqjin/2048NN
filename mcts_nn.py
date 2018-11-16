@@ -13,6 +13,7 @@ from keras.utils import to_categorical
 # Suppress Tensorflow build from source messages
 from os import environ
 environ['TF_CPP_MIN_LOG_LEVEL']='2'
+from mcts_batch import mcts_batch
 
 
 def generate_model(number):
@@ -69,7 +70,7 @@ def method_model(board, model):
     scores_list = model.predict(board.reshape((1,SIZE_SQRD)))[0]
     return np.flipud(np.argsort(scores_list))
 
-    
+'''    
 def mcts_nn(game, model, number = 5):
     """
     Run Monte Carlo Tree Search using NN for generating lines
@@ -108,7 +109,7 @@ def mcts_nn(game, model, number = 5):
             game.restore(original_board, original_score)
             
     return scores_list
-    
+'''    
     
 def make_data(game, model, number = 5):
     """
@@ -118,7 +119,7 @@ def make_data(game, model, number = 5):
     boards = []
     results = []
     while True:
-        scores_list = mcts_nn(game, model, number)
+        scores_list = mcts_batch(game, model, number)
         print(scores_list)
         order = np.flipud(np.argsort(scores_list))
         if sum(scores_list) > 0:

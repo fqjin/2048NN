@@ -30,7 +30,14 @@ class Board:
     def restore(self, board, score):
         """Sets board and score to input values"""
         self.board = np.copy(board)
-        self.score = score
+        self.score = score  # immutable does not need copying
+        
+    def copy(self):
+        """Returns a copy as a new Board object"""
+        temp = Board()
+        temp.board = np.copy(self.board)
+        temp.score = self.score
+        return temp
     
     def draw(self):
         """Prints board state"""
@@ -48,12 +55,14 @@ class Board:
             Chance of 2 is 90%
         """
         empty = np.transpose(np.where(self.board == 0))
-        position = empty[randrange(len(empty))]
-        if randint(0,9):
-            self.board[position[0],position[1]] = 1
-        else:
-            self.board[position[0],position[1]] = 2
+        # position = empty[randrange(len(empty))]
+        # if randint(0,9):
+            # self.board[position[0],position[1]] = 1
+        # else:
+            # self.board[position[0],position[1]] = 2
         #   self.board[tuple(position)] is 3 times slower
+        position = empty[0]
+        self.board[position[0],position[1]] = 1
 
     def merge_row(self, row):
         """Merges input row and shifts tiles to the left side"""
