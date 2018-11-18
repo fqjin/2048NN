@@ -1,8 +1,8 @@
 import numpy as np
-from random import randint, randrange
+from random import randint, randrange, seed
 # Do not use scientific notation
 np.set_printoptions(suppress=True)
-
+seed(1234)
 
 # Board Dimensions
 SIZE = 4
@@ -61,7 +61,7 @@ class Board:
 
     def copy(self):
         """Returns a copy as a new Board object"""
-        temp = Board()
+        temp = Board(gen=False)
         temp.board = np.copy(self.board)
         temp.score = self.score
         # Explicit saves time rather than calling restore
@@ -73,6 +73,10 @@ class Board:
 
         Args:
             row: numpy array of row to merge
+
+        Returns:
+            array: row after shift and merge
+            bool: True if row changed, False if unchanged
 
         """
         final = []
@@ -133,4 +137,27 @@ class Board:
             if moved:
                 moved_any = True
         return moved_any
+
+
+def play_fixed(press_enter=False):
+    """Run 2048 with the fixed move priority L,U,R,D.
+
+    Args:
+        press_enter (bool): Whether keyboard press is
+            required for each step. Defaults to False.
+            Type 'q' to quit when press_enter is True.
+
+    """
+    game = Board(gen=True)
+    while True:
+        if press_enter and input() == 'q':
+            break
+        for i in range(4):
+            if game.move(i):
+                game.generate_tile()
+                game.draw()
+                break
+        else:
+            print('Game Over')
+            break
 

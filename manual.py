@@ -2,29 +2,6 @@ import curses  # pip install windows-curses
 from board import Board
 
 
-def play_fixed(press_enter=False):
-    """Run 2048 with the fixed move priority L,U,R,D.
-
-    Args:
-        press_enter (bool): Whether keyboard press is
-            required for each step. Defaults to False.
-            Type 'q' to quit when press_enter is True.
-
-    """
-    game = Board(gen=True)
-    while True:
-        if press_enter and input() == 'q':
-            break
-        for i in range(4):
-            if game.move(i):
-                game.generate_tile()
-                game.draw()
-                break
-        else:
-            print('Game Over')
-            break
-
-
 def play_manual():
     """Play 2048 manually with the arrow keys"""
     screen = curses.initscr()
