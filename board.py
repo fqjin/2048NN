@@ -24,14 +24,13 @@ class Board:
         moves: a list of the 4 move functions in order L,U,R,D
 
     """
-
     def __init__(self, gen=True):
         self.board = np.zeros(DIMENSIONS)
         self.score = 0
-        # self.moves = [self.move_left,
-        #               self.move_up,
-        #               self.move_right,
-        #               self.move_down]
+        self.moves = [self.move_left,
+                      self.move_up,
+                      self.move_right,
+                      self.move_down]
 
         if gen:
             self.generate_tile()
@@ -48,7 +47,7 @@ class Board:
         if randint(0, 9):
             self.board[position[0], position[1]] = 1
         else:
-            self.board[position[0], position[1]] = 0
+            self.board[position[0], position[1]] = 2
         #   self.board[tuple(position)] is 3 times slower
 
     def draw(self):
@@ -71,7 +70,7 @@ class Board:
         temp = Board()
         temp.board = np.copy(self.board)
         temp.score = self.score
-        # Explicitly saves time rather than calling restore
+        # Explicit saves time rather than calling restore
         return temp
 
     def merge_row(self, row):
@@ -102,6 +101,8 @@ class Board:
         final += [0]*(SIZE-len(final))  # Pad with zeros
         return np.array(final)
 
+    # TODO: Combine all moves to one function
+    # Second reference to `self.board[i]` can be replaced with `row`
     def move_left(self):
         """Execute left move or returns False if unable"""
         # Row by Row
