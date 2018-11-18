@@ -16,7 +16,7 @@ def play_fixed(press_enter=False):
         if press_enter and input() == 'q':
             break
         for i in range(4):
-            if game.moves[i]():
+            if game.move(i):
                 game.generate_tile()
                 game.draw()
                 break
@@ -44,7 +44,7 @@ def play_manual():
             elif char == curses.KEY_RIGHT:i = 2
             elif char == curses.KEY_DOWN: i = 3
             if i != -1:
-                if game.moves[i]():
+                if game.move(i):
                     game.generate_tile()
                     game.draw()
 

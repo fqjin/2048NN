@@ -21,17 +21,11 @@ class Board:
     Attributes:
         board: numpy array of board tiles, stored as log-base-2
         score: int score, the sum of all combination values
-        moves: a list of the 4 move functions in order L,U,R,D
 
     """
     def __init__(self, gen=True):
         self.board = np.zeros(DIMENSIONS)
         self.score = 0
-        self.moves = [self.move_left,
-                      self.move_up,
-                      self.move_right,
-                      self.move_down]
-
         if gen:
             self.generate_tile()
             self.generate_tile()
@@ -91,61 +85,52 @@ class Board:
                 self.score += 2**(int(tile)+1)
                 base = 0
             else:
-                if base:
-                    final.append(base)  # Don't append zeros
+                if base:  # Don't append zeros
+                    final.append(base)
                 base = tile
         if base:
             final.append(base)
-        # TODO: put moved=True into merge_row
-        # if len(final) is not SIZE, then moved = True ?
-        final += [0]*(SIZE-len(final))  # Pad with zeros
-        return np.array(final)
+        # Cannot use len(final) to predict if moved
+        final += [0] * (SIZE - len(final))  # Pad with zeros
 
-    # TODO: Combine all moves to one function
-    # Second reference to `self.board[i]` can be replaced with `row`
-    def move_left(self):
-        """Execute left move or returns False if unable"""
-        # Row by Row
-        moved = False
-        for i in range(SIZE):
-            row = self.board[i]
-            new_row = self.merge_row(row)
-            if any(new_row != row):
-                moved = True
-                self.board[i] = new_row
-        return moved
+        # `list(row) != final` is faster than `any(row != final)`
+        # if-else avoids computing np.array(final) when not moved
+        if list(row) != final:
+            return np.array(final), True
+        else:
+            return row, False
 
-    def move_up(self):
-        """Execute up move or returns False if unable"""
-        # Column by Column
-        moved = False
-        for i in range(SIZE):
-            row = self.board[:, i]
-            new_row = self.merge_row(row)
-            if any(new_row != row):
-                moved = True
-                self.board[:, i] = new_row
-        return moved
+    def move(self, direction):
+        """Execute move in a direction. Returns False if unable
 
-    def move_right(self):
-        """Execute right move or returns False if unable"""
-        moved = False
-        for i in range(SIZE):
-            row = self.board[i, ::-1]
-            new_row = self.merge_row(row)
-            if any(new_row != row):
-                moved = True
-                self.board[i, ::-1] = new_row
-        return moved
+        Args:
+            direction: index representing move direction
+                0 : Left
+                1 : Up
+                2 : Right
+                3 : Down
 
-    def move_down(self):
-        """Execute down move or returns False if unable"""
-        moved = False
+        Returns:
+            bool: True if able to move, False if unable
+
+        Raises:
+            IndexError: if direction index is not 0 to 3
+
+        """
+        moved_any = False
         for i in range(SIZE):
-            row = self.board[::-1, i]
-            new_row = self.merge_row(row)
-            if any(new_row != row):
-                moved = True
-                self.board[::-1, i] = new_row
-        return moved
+            if direction == 0:
+                self.board[i], moved = self.merge_row(self.board[i])
+            elif direction == 1:
+                self.board[:, i], moved = self.merge_row(self.board[:, i])
+            elif direction == 2:
+                self.board[i, ::-1], moved = self.merge_row(self.board[i, ::-1])
+            elif direction == 3:
+                self.board[::-1, i], moved = self.merge_row(self.board[::-1, i])
+            else:
+                raise IndexError('Only 0 to 3 accepted as directions')
+
+            if moved:
+                moved_any = True
+        return moved_any
 
