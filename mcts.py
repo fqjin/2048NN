@@ -2,15 +2,15 @@ import numpy as np
 from board import Board
 
 
-def mcts_fixed(game, move_order=(0, 1, 2, 3), number=5):
+def mcts_fixed(game, number=5, move_order=(0, 1, 2, 3)):
     """Run tree search using a fixed move order for generating lines
 
     Args:
         game (Board): the starting game state
-        move_order: tuple of the 4 move indices in order.
-            Defaults to (0, 1, 2, 3)
         number (int): # of lines to try for each move.
             Defaults to 5
+        move_order: tuple of the 4 move indices in order.
+            Defaults to (0, 1, 2, 3)
 
     Returns:
         list: score increase for each move [Left, Up, Right, Down]
@@ -41,28 +41,30 @@ def mcts_fixed(game, move_order=(0, 1, 2, 3), number=5):
                         # game.draw()
                         break
                 scores[i] += game.score
-            scores[i] /= number  # Calculate average final score
+
+            # Calculate average final score
+            scores[i] /= number
             scores[i] -= original.score
             game.restore(original.board, original.score)
 
     return scores
 
 
-def play_mcts_fixed(game, move_order=(0, 1, 2, 3), number=5, verbose=False):
+def play_mcts_fixed(game, number=5, move_order=(0, 1, 2, 3), verbose=False):
     """Play a game using the default mcts_fixed
 
     Args:
         game (Board): the starting game state
-        move_order: tuple of the 4 move indices in order.
-            Defaults to (0, 1, 2, 3)
         number (int): # of lines to try for each move.
             Defaults to 5
+        move_order: tuple of the 4 move indices in order.
+            Defaults to (0, 1, 2, 3)
         verbose (bool): whether to print mcts scores
             Defaults to False
 
     """
     while True:
-        scores = mcts_fixed(game, move_order, number)
+        scores = mcts_fixed(game, number=number, move_order=move_order)
         if verbose:
             print(scores)
         for i in np.flipud(np.argsort(scores)):
