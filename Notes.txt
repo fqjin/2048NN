@@ -4,11 +4,11 @@
 
 
 # move function implementation
-    The merge_row function merges and tightens a single row to the left side. I have two ways to perform moves in non-left directions: 1) to transform, using transpose and flip, the matrix such that the desired direction points left, or 2) to change slicing operations such that input row to merge_row is oriented in the desired direction. Method 2) was previously names alt/alternative. I performed timing comparisons:
-    
+    The merge_row function merges and tightens a single row to the left side. I have two ways to perform moves in non-left directions: 1) to transform, using transpose and flip, the matrix such that the desired direction points left, or 2) to change slicing operations such that input row to merge_row is oriented in the desired direction. Method 2) was previously named alt/alternative. I performed timing comparisons:
+
     print(timeit.timeit('a.board=np.zeros((4,4))\nfor _ in range(8):\n    a.generate_tile()\na.move_up()',
           setup='from __main__ import a,np',number=10000))
-    move_left   => 1.867    
+    move_left   => 1.867
     move_up     => 1.970, 2.037
     move_up_alt => 2.033, 2.025
     move_right  => 1.994, 2.109
@@ -21,7 +21,7 @@
 
 # Merge implementation
     Current move implementation performs the operation row by row using a merge_row function. I wondered whether this could be done via a single operation on the whole matrix, which uses np.where to get the coordinates of all nonzero tiles and then iterates through them to generate the new matrix. However, the generation process still works like a row-by-row system because it keep tracks on the current row to perform its calculations. I performed timing comparisons:
-    
+
     move_left         => 1.886  1.894, 1.851
     move_left_matrix  => 2.041, 2.012, 1.966
     matrix implementation is slower by about 6.9%
@@ -36,18 +36,18 @@
 
 
 # Monte Carlo tree search implementation
-    Initial version requires no input from neural networks. Each of the four moves are explored equally with a number of lines. The original state is saved, and multiple lines are generated using a move-selection method until the game-over state is reached. Final scores are combined using mean to give the expected value estimate for final score for each move. Alternatives to explore include median, mode, and variance. 
+    Initial version requires no input from neural networks. Each of the four moves are explored equally with a number of lines. The original state is saved, and multiple lines are generated using a move-selection method until the game-over state is reached. Final scores are combined using mean to give the expected value estimate for final score for each move. Alternatives to explore include median, mode, and variance.
     Using this MCTS method to choose moves (implemented in play_MCTS) is significantly superior to using the fixed move order (L,U,R,D) method. Note that the MCTS does use the fixed method to generate lines. Representative results:
-    
+
     play_fixed:
         Score: 3380, 2636, 2628, 1480, 1152 (4000s also observed)
         Max tile: 128 or 256
-    
+
     play_MCTS (number = 5):
         Score: 6300, 11536, 10520
         Max tile: 1024
     play_MCTS (number = 10):
-        Score: 15520 
+        Score: 15520
         Max tile: 1024 also with 512, 256, and two 64 tiles
 
     Note 1: This method is not truly a 'tree search' because it does not need to remember intermediate states between the starting and final states. It does not use information about previous searches for generating new lines. Each line is able to be unique because of the probabilistic nature of new tile value and placement.
@@ -67,7 +67,7 @@
 	2. Initialization regularization with test set to make sure LURD distribution is uniform. Alternative is to first train on results of number=10 fixed method MCTS results.
 	3. Reinforcement has two options: pass the move with maximum expected value (one-hot) vs pass all four scores normalized to maximum.
 	4. Efficiency of MCTS will improve slightly as the NN learns to select legal vs illegal moves, thus decreasing the amount of times MCTS has to check illegal moves.
-	
+
 
 # NN training results (v2)
     First proper NN.
@@ -78,7 +78,7 @@
     First try pure self-learning without relying on starter fixed_order training data.
     Did not implement batch mcts yet. Computing linearlly is slow, taking ~5 minutes to complete a game.
     Training after each game, using batch training with batch size = 32 (default) and over 10 epochs
-    
+
     v2  init training:                         258 steps
     v2-1 training: score 7508,  max tile 512,  528 steps
     v2-2 training: score 12976, max tile 1024, 756 steps
@@ -88,17 +88,17 @@
     v2-6 training: score 12464, max tile 1024, 747 steps
     v2-7, model is overfitted, giving the order D,R,U,L for any input board
 
-    The problem is overfitting. Possible causes: 
+    The problem is overfitting. Possible causes:
     -poor architecture: add dropout layer, change number or size of layers
     -too little data: generate more before training
     -too many epochs: use 5 more less
     -poor output definition: change to one-hot encoding and softmax cross entropy
     -training data skewed (class imbalance): however might want to preserve this bias, use a validation set or monitor output distribution for overtraining
 
-    
+
 # NN training results (v3)
     First solution is to decrease epoch number to 5 and to change training to one-hot/cross-entropy. This loses any secondary ordering training, but it should be inferred by the network. Of course if network always chooses a legal move, secondary order doesn't matter.
-    
+
     v3-0 init:  score 2416,  max tile 256,  204 steps
     v3-1 train: score 15512, max tile 1024, 902 steps
     - note both v3-1 and v3-2 already have class imbalance problem: output order is [1,0,3,2] for all 902 boards
@@ -115,8 +115,8 @@
     v3-4x   :   score 12956, max tile 1024, 786 steps, {0: .244, 1: .296, 2: .237, 3: .223}
     v3-5x   :   score 11272, max tile 1024, 643 steps, {0: .267, 1: .260, 2: .224, 3: .249}
     - consistently getting 1024 tile. Fixed_method mcts often dies before reaching 1024, but can also get lucky as well. How to prove that NN is making intelligent decisions, given that pure play with NN has very poor performance?
-    
-    
+
+
 # Batch mcts_nn
     Running make_data takes a long time (5-10 minutes). This will only get worse as lines look deeper and games last longer. To save future time, I should get to work on implementing batch mcts_nn. If 5 lines per move direction, up to 20 lines played simultaneously by the neural network. This is assuming that NN computation is the rate-limiting step. I should check with cProfile.
     Results: mcts_batch faster than mcts_nn: 3x at number = 5, 4x at number = 50
@@ -126,7 +126,30 @@
                    81 seconds to reach score 11760
                   176 seconds to reach score 12148 (number = 10)
     Odd conundrum: make_data with batch process results in lower scores on average. I tested many ways to make sure mcts_batch and mcts_nn ran the same logic and game the same results. Yet still there seems to be a difference!
-    
 
-# Poor mcts_batch performanc
+
+# Poor mcts_batch performance
     Simplify debugging by making game deterministic by removing randomness from generate_tile. After removing randomness, old mcts_nn and mcts_batch give the same results. make_data also gives the same main line and predictions for both. This localizes the difference to how random tiles are called or how different lines are combined.
+    Interrogate by viewing score of each individual line.
+
+
+# 11/16/18 Reworking all code in pycharm
+    Better documentation and PEP8 conformance. See github comments for summary of changes.
+
+
+# Distribution of mcts results:
+    See mathematica file for more details. Standard deviation of mean of scores is extremely large, and does not become reasonably small until 50 to 100 games. A mean of 5 to 10 games can be up to 1000 points from the true mean.
+
+
+# Seed 1234
+    play_fixed:             score  4104, max_tile 256
+    play_mcts(number=5):    score  7112, max_tile 512
+    play_mcts(number=10):   score 12084, max_tile 1024
+    mcts_fixed(number=10):        [1900,2919,2804,2419], t=0.461
+    mcts_fixed_batch(number=10):  [2209,2368,2261,2201], t=0.442
+        -different results due to lines simulated in different order
+        -timing is not very different given margin of error of timeit
+    mcts_fixed(number=1000):      [2358,2318,2283,2296], t=48.0
+    mcts_fixed_batch(number=1000):[2351,2322,2303,2218], t=48.3
+        -size of confidence for 1000 samples is 100 points
+        -timing very similar
