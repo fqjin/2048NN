@@ -54,7 +54,8 @@ def play_mcts_fixed(game, number=5, move_order=(0, 1, 2, 3), verbose=False):
     """Play a game using the default mcts_fixed
 
     Args:
-        game (Board): the starting game state
+        game (Board): the starting game state. If `None`
+            is passed, will generate a new Board.
         number (int): # of lines to try for each move.
             Defaults to 5
         move_order: tuple of the 4 move indices in order.
@@ -63,6 +64,8 @@ def play_mcts_fixed(game, number=5, move_order=(0, 1, 2, 3), verbose=False):
             Defaults to False
 
     """
+    if not game:
+        game = Board(gen=True)
     while True:
         scores = mcts_fixed(game, number=number, move_order=move_order)
         if verbose:

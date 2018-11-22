@@ -2,8 +2,13 @@ import curses  # pip install windows-curses
 from board import Board
 
 
-def play_manual():
-    """Play 2048 manually with the arrow keys"""
+def play_manual(game=None):
+    """Play 2048 manually with the arrow keys
+
+    Args (optional):
+        game (Board): the starting game state.
+            Default will generate a new Board.
+    """
     screen = curses.initscr()
     curses.noecho()
     curses.cbreak()
@@ -11,7 +16,8 @@ def play_manual():
 
     try:
         # draw_curses function with screen.addstr not needed
-        game = Board(gen=True)
+        if not game:
+            game = Board(gen=True)
         while True:
             char = screen.getch()
             i = -1

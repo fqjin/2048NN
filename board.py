@@ -139,16 +139,19 @@ class Board:
         return moved_any
 
 
-def play_fixed(press_enter=False):
+def play_fixed(game=None, press_enter=False):
     """Run 2048 with the fixed move priority L,U,R,D.
 
-    Args:
+    Args (optional):
+        game (Board): the starting game state.
+            Default will generate a new Board.
         press_enter (bool): Whether keyboard press is
             required for each step. Defaults to False.
             Type 'q' to quit when press_enter is True.
 
     """
-    game = Board(gen=True)
+    if not game:
+        game = Board(gen=True)
     while True:
         if press_enter and input() == 'q':
             break
