@@ -1,151 +1,230 @@
-from board import *
-# includes SIZE, DIMENSIONS, SIZE_SQRD
-# includes Board class
-# includes randrange, randint, numpy as np
-
-# import tensorflow as tf
-import keras
-from keras.layers import Activation, Dense, Flatten, Conv2D
-from keras.layers.normalization import BatchNormalization
-from keras.models import Sequential, load_model
-from keras.regularizers import l2
+import numpy as np
+from keras import Sequential
+from keras.backend import softmax
+from keras.engine.saving import load_model
+from keras.layers import Flatten, Dense
 from keras.utils import to_categorical
+
+from board import Board
+from board import SIZE, SIZE_SQRD, DIMENSIONS
+
+if True:
+    from numpy.random import seed
+    seed(5678)
+    from tensorflow import set_random_seed
+    set_random_seed(5678)
 # Suppress Tensorflow build from source messages
-from os import environ
-environ['TF_CPP_MIN_LOG_LEVEL']='2'
-from mcts_batch import mcts_batch
+# from os import environ
+# environ['TF_CPP_MIN_LOG_LEVEL']='2'
 
 
-def generate_model(number):
-    # Architecture
-    """
-    Creates and returns a new NN, and saves as 'nn2048v_number_.h5'
-    Args: number should be a str of format '#-#' but can be an int
+def simple_model(features=16, layers=1, name=None):
+    """Creates and returns a simple keras model
+
+    Fully connected model:
+    -Flatten board grid into vector
+    -`layers` # of Dense layers with `features` # of nodes
+    -Dense layer with 8 nodes
+    -Dense layer of size 4 using softmax for output
+
+    Args:
+        features: number of nodes for middle layers
+            Defaults to 16
+        layers: number of middle layers
+            Defaults to 1
+        name: optional name for model
+
     """
     model = Sequential()
-    model.add(Dense(16, input_dim = SIZE_SQRD))
-    model.add(BatchNormalization())
-    model.add(Activation('relu'))
-    model.add(Dense(16, kernel_initializer='uniform'))
-    model.add(BatchNormalization())
-    model.add(Activation('relu'))
-    model.add(Dense(8, activation = 'relu', kernel_initializer='uniform'))
-    model.add(Dense(4, activation = 'softmax', kernel_initializer='uniform'))
-    model.compile(loss='categorical_crossentropy', optimizer='sgd')
-    
-    model.save('nn2048v'+str(number)+'.h5')
-    print('Saved as: nn2048v'+str(number)+'.h5')
+    if name:
+        model.name = name
+    model.add(Flatten(input_shape=(SIZE, SIZE)))
+    # TODO: Test effect of batch norm
+    for _ in range(layers):
+        model.add(Dense(features, activation='relu'))
+    model.add(Dense(8, activation = 'relu'))
+    model.add(Dense(4, activation = 'softmax'))
+    model.compile(loss='categorical_crossentropy', optimizer='adam')
+
     return model
 
-    
-def get_model(number):
-    """Return the NN 'nn2048v_number_.h5'"""
-    return load_model('nn2048v'+str(number)+'.h5')
 
-    
-def save_model(model, number):
-    """Save the NN as 'nn2048v_number_.h5'"""
-    model.save('nn2048v'+str(number)+'.h5')   
-    
-    
-def play_nn(game, model, press_enter = False):
-    """Automatically play through game using neural network choices (w/o monte carlo)"""
+def save_model(model, name):
+    """Save the model as 'nn2048v_name_.h5'
+
+    name should be a string of the form '3.1'
+    Method sets model.name to the given name
+
+    """
+    # TODO: Just save the weights, not the whole model
+    model.name = name
+    model.save('models/nn2048v{}.h5'.format(name))
+
+
+def get_model(name):
+    """Return the model named 'nn2048v_name_.h5'"""
+    return load_model('models/nn2048v{}.h5'.format(name))
+
+
+def play_nn(game, model, press_enter=False):
+    """Play through a game using a keras NN.
+
+    Moves are selected purely by keras model.
+    No monte carlo simulations are used.
+
+    Args:
+        game (Board): the starting game state. If `None`
+            is passed, will generate a new Board.
+        model: keras model to predict moves
+        press_enter (bool): Whether keyboard press is
+            required for each step. Defaults to False.
+            Type 'q' to quit when press_enter is True.
+
+    """
+    if not game:
+        game = Board(gen=True)
     while True:
         if press_enter and input() == 'q':
             break
-        scores_list = model.predict(game.board.reshape((1,SIZE_SQRD)))[0]
-        print(scores_list)
-        for i in np.flipud(np.argsort(scores_list)):
-            if game.moves[i]():
+        pred = model.predict(np.expand_dims(game.board, 0))[0]
+        print(pred)
+        for i in np.flipud(np.argsort(pred)):
+            if game.move(i):
                 game.generate_tile()
                 game.draw()
                 break
-        else:        
+        else:
             print('Game Over')
             break
-    
-    
-def method_model(board, model):
-    # Unused
-    scores_list = model.predict(board.reshape((1,SIZE_SQRD)))[0]
-    return np.flipud(np.argsort(scores_list))
 
-'''    
-def mcts_nn(game, model, number = 5):
-    """
-    Run Monte Carlo Tree Search using NN for generating lines
-    
+
+def mcts_nn(game, model, number=10):
+    """Run tree search with keras model making lines.
+    Batch implementation for efficiency.
+
     Args:
         game (Board): the starting game state
-        model (Sequential): keras NN for selecting moves
-        number (int): # of lines to try for each move. Default is 5
+        model: keras model to predict moves
+        number (int): # of lines to try for each move.
+            Defaults to 10
+
     Returns:
-        score difference from current state for each move as a list [L, U, R, D]  
+        list: score increase for each move [Left, Up, Right, Down]
+
     """
-    # With a neural network, it may be more efficient to pass mulitple boards simultaneously
-    original_board = np.copy(game.board)
-    original_score = game.score
-    scores_list = np.zeros(4)
-    
+    original = game.copy()
+    scores = [0, 0, 0, 0]
+    lines = []
     for i in range(4):
-        if not game.moves[i]():
-            game.restore(original_board, original_score)
-        else:
+        if game.move(i):
+            game.restore(original.board, original.score)
+            # Sacrifice one move(i) computation
             for _ in range(number):
-                game.restore(original_board, original_score)
-                game.moves[i]()
-                game.generate_tile()
-                while True:
-                    predictions = model.predict(game.board.reshape((1,SIZE_SQRD)))[0]
-                    for j in np.flipud(np.argsort(predictions)):
-                        if game.moves[j]():
-                            game.generate_tile()
-                            break
-                    else:
-                        break
-                scores_list[i] += game.score  # Add to score for each run
-            scores_list[i] /= number  # Calculate average final score
-            scores_list[i] -= original_score  # Subtract off original score
-            game.restore(original_board, original_score)
-            
-    return scores_list
-'''    
-    
-def make_data(game, model, number = 5):
-    """
-    Plays through one game using monte-carlo search.
-    Returns all boards and computed scores for the main line for training use.
+                temp = game.copy()
+                temp.move(i)
+                temp.generate_tile()
+                temp.index = i
+                lines.append(temp)
+
+    dead = []
+    while lines:
+        preds = model.predict(np.asarray([line.board for line in lines]))
+        preds = np.fliplr(np.argsort(preds))
+        for line, order in zip(lines, preds):
+            for j in order:
+                if line.move(j):
+                    line.generate_tile()
+                    break
+            else:
+                dead.append(line)
+
+        if dead:
+            for line in dead:
+                scores[line.index] += line.score
+                lines.remove(line)
+            dead = []
+
+    scores = [score/number - original.score
+              if score else 0.0
+              for score in scores]
+    return scores
+
+
+def make_data(game, model, number=10, verbose=False):
+    """Plays through one game using mcts_nn. Returns all
+    boards and computed scores of the main line for training.
+
+    Args:
+        game (Board): the starting game state. If `None`
+            is passed, a new Board is generated.
+        model: keras model to predict moves
+        number (int): # of lines to try for each move.
+            Defaults to 10
+        verbose (bool): whether to print mcts scores
+            Defaults to False
+
+    Returns:
+        boards: list of boards
+        results: list of mcts_nn scores
+
     """
     boards = []
     results = []
+    if not game:
+        game = Board(gen=True)
     while True:
-        scores_list = mcts_batch(game, model, number)
-        print(scores_list)
-        order = np.flipud(np.argsort(scores_list))
-        if sum(scores_list) > 0:
-            boards.append(game.board.flatten())
-            results.append(order[0])
-        else:
-            print('Null scores list')
-            
-        for i in order:
-            if game.moves[i]():
+        scores = mcts_nn(game, model, number)
+        if verbose:
+            print(scores)
+        if sum(scores) > 0:
+            boards.append(np.copy(game.board))
+            results.append(scores)
+        for i in np.flipud(np.argsort(scores)):
+            if game.move(i):
                 game.generate_tile()
                 game.draw()
                 break
-        else:       
+        else:
             print('Game Over')
             break
-            
+
     return boards, results
 
-            
-def training(boards, results, model, epochs = 5):
-    """Trains a model using model.fit on a set of boards and associated results"""
-    model.fit(np.vstack(boards), to_categorical(results, num_classes = 4), epochs = epochs)
+# TODO: data augmentation
 
 
-# FOR TESTING
-print('a = Board(gen = True)')
-a = Board(gen = True)
+def train(model, boards, results, epochs=10):
+    """Trains a model using model.fit on a set of boards and results
 
+    mcts_nn scores are converted to one hot before training
+
+    Args:
+        model: keras model to train
+        boards: list of boards
+        results: list of mcts_nn scores
+        epochs (int): number of epochs
+
+    """
+    model.fit(np.asarray(boards),
+              to_categorical(np.argmax(results, axis=-1), num_classes=4),
+              epochs=epochs)
+
+
+if __name__ == '__main__':
+    m = simple_model()
+    m.summary()
+    high_score = []
+    max_tile = []
+
+    for i in range(3):
+        a = Board()
+        b, r = make_data(a, m)
+        high_score.append(r[-1])
+        max_tile.append(b[-1].max())
+        train(m, b, r, epochs=50)
+        del b, r
+        save_model(m, '1.{}'.format(i+1))
+
+    for i, (s, t) in enumerate(zip(high_score, max_tile)):
+        print('Game {}, Score {}, Max Tile {}'.
+              format(i, s, int(2**t)))
