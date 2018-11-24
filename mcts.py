@@ -55,7 +55,7 @@ def play_mcts_fixed(game, number=5, move_order=(0, 1, 2, 3), verbose=False):
 
     Args:
         game (Board): the starting game state. If `None`
-            is passed, will generate a new Board.
+            is passed, a new Board is generated.
         number (int): # of lines to try for each move.
             Defaults to 5
         move_order: tuple of the 4 move indices in order.
@@ -67,7 +67,7 @@ def play_mcts_fixed(game, number=5, move_order=(0, 1, 2, 3), verbose=False):
     if not game:
         game = Board(gen=True)
     while True:
-        scores = mcts_fixed(game, number=number, move_order=move_order)
+        scores = mcts_fixed(game, number, move_order)
         if verbose:
             print(scores)
         for i in np.flipud(np.argsort(scores)):
