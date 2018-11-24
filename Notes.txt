@@ -153,3 +153,13 @@
     mcts_fixed_batch(number=1000):[2351,2322,2303,2218], t=48.3
         -size of confidence for 1000 samples is 100 points
         -timing very similar
+# np/tf seed 5678
+    play_nn (init):         score  1100, max_tile 128
+        -poorer performance due to random instead of fixed move order
+    make_data(number=10):   score  5260, max_tile 512
+        -poorer performance due to random move order, giving poor mcts predictions
+      iter 1 (100 epcohs) score 15804, max_tile 1024
+      iter 2 (100 epcohs) score  5360, max_tile 512
+         -did dilution from higher score boards make model perform worse on lower scores?
+         -could also just be random
+ 
