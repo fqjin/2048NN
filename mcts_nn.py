@@ -1,6 +1,5 @@
 import numpy as np
 from keras import Sequential
-from keras.backend import softmax
 from keras.engine.saving import load_model
 from keras.layers import Flatten, Dense
 from keras.utils import to_categorical
@@ -42,10 +41,10 @@ def simple_model(features=16, layers=1, name=None):
     # TODO: Test effect of batch norm
     for _ in range(layers):
         model.add(Dense(features, activation='relu'))
-    model.add(Dense(8, activation = 'relu'))
-    model.add(Dense(4, activation = 'softmax'))
-    model.compile(loss='categorical_crossentropy', optimizer='adam')
-
+    model.add(Dense(8, activation='relu'))
+    model.add(Dense(4, activation='softmax'))
+    model.compile(loss='categorical_crossentropy',
+                  optimizer='adam')
     return model
 
 
@@ -179,6 +178,7 @@ def make_data(game, model, number=10, verbose=False):
         if sum(scores) > 0:
             boards.append(np.copy(game.board))
             results.append(scores)
+            # TODO: only store argmax in results
         for i in np.flipud(np.argsort(scores)):
             if game.move(i):
                 game.generate_tile()
@@ -207,20 +207,70 @@ def train(model, boards, results, epochs=10):
     """
     model.fit(np.asarray(boards),
               to_categorical(np.argmax(results, axis=-1), num_classes=4),
-              epochs=epochs)
+              epochs=epochs,
+              verbose=2)
 
 
-if __name__ == '__main__':
+def benchmark(model, number=1000, save=False):
+    """Perform a benchmark for a given model.
+
+    Args:
+        model: keras model to benchmark. Can be a model
+            or the name of a model to load.
+        number: number of games to run.
+            Defaults to 1000.
+        save (bool): Whether to save benchmark results to
+            a file of the model's name. Defaults to False
+
+    Returns: average and standard deviation of scores
+
+    """
+    if type(model) is str:
+        model = get_model(model)
+    lines = [Board(gen=True, draw=False) for _ in range(number)]
+    dead = []
+    scores = []
+    counter = number//200
+    while lines:
+        if len(lines)//200 < counter:
+            counter -= 1
+            print('>{} remaining'.format(counter * 200))
+        preds = model.predict(np.asarray([line.board for line in lines]))
+        preds = np.fliplr(np.argsort(preds))
+        for line, order in zip(lines, preds):
+            for j in order:
+                if line.move(j):
+                    line.generate_tile()
+                    break
+            else:
+                dead.append(line)
+        if dead:
+            for line in dead:
+                scores.append(line.score)
+                lines.remove(line)
+            dead = []
+    scores = np.asarray(scores)
+
+    if save:
+        file_name = 'benchmarks/nn2048v{}.csv'.format(model.name)
+        with open(file_name, 'w+') as file:
+            for score in scores:
+                file.write(str(score)+'\n')
+        print('saved to {}'.format(file_name))
+    return scores.mean(), scores.std()
+
+
+def main_train():
     m = simple_model()
     m.summary()
     high_score = []
     max_tile = []
 
-    for i in range(3):
+    for i in range(5):
         a = Board()
         b, r = make_data(a, m)
-        high_score.append(r[-1])
-        max_tile.append(b[-1].max())
+        high_score.append(a.score)
+        max_tile.append(a.board.max())
         train(m, b, r, epochs=50)
         del b, r
         save_model(m, '1.{}'.format(i+1))
@@ -228,3 +278,15 @@ if __name__ == '__main__':
     for i, (s, t) in enumerate(zip(high_score, max_tile)):
         print('Game {}, Score {}, Max Tile {}'.
               format(i, s, int(2**t)))
+
+
+def main_test():
+    for name in ['1.1', '1.3', '1.5']:
+        m = get_model(name)
+        ave, std = benchmark(m, save=False)
+        print('Ave {}'.format(ave))
+        print('Std {}'.format(std))
+
+
+if __name__ == '__main__':
+    main_test()
