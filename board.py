@@ -17,19 +17,21 @@ class Board:
     Args:
         gen (bool): Whether to generate two initial tiles.
             Defaults to True.
+        draw (bool): if gen is True, whether to draw the board.
+            Defaults to True.
 
     Attributes:
         board: numpy array of board tiles, stored as log-base-2
         score: int score, the sum of all combination values
 
     """
-    def __init__(self, gen=True):
+    def __init__(self, gen=True, draw=True):
         self.board = np.zeros(DIMENSIONS)
         self.score = 0
         if gen:
             self.generate_tile()
             self.generate_tile()
-            self.draw()
+            if draw: self.draw()
 
     def generate_tile(self):
         """Places a 2 or 4 in a random empty tile
