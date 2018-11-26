@@ -162,4 +162,15 @@
       iter 2 (100 epcohs) score  5360, max_tile 512
          -did dilution from higher score boards make model perform worse on lower scores?
          -could also just be random
- 
+# Second trial with fixed seeds
+    Game 0, Score 5260, Max Tile 512
+    Game 1, Score 10880, Max Tile 1024
+    Game 2, Score 10884, Max Tile 1024
+    Game 3, Score 16288, Max Tile 1024
+    Game 4, Score 12160, Max Tile 1024
+        Using 1000 game benchmark on these models shows progressive worsening with training. Results from mcts are different than pure play_nn results, although a good model will perform well on both.
+
+
+# Augmentation
+    The symmetry of the game (square group D4, containing 8 elements) necessitates the use of data augmentation to produce a symmetrically trained model. However, doing so will eliminate any corner bias (ex. always putting highest tile in the top right corner). These non-symmetric heuristics may be beneficial in the beginning, but the optimal model should be symmetric.
+
