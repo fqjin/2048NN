@@ -12,6 +12,7 @@ if True:
     seed(5678)
     from tensorflow import set_random_seed
     set_random_seed(5678)
+
 # Suppress Tensorflow build from source messages
 # from os import environ
 # environ['TF_CPP_MIN_LOG_LEVEL']='2'
@@ -143,7 +144,7 @@ def mcts_nn(game, model, number=10):
                 lines.remove(line)
             dead = []
 
-    scores = [score/number - original.score
+    scores = [score / number - original.score
               if score else 0.0
               for score in scores]
     return scores
@@ -190,10 +191,60 @@ def make_data(game, model, number=10, verbose=False):
 
     return boards, results
 
-# TODO: data augmentation
+
+def augment(boards, results):
+    """Returns augmented dataset for training.
+
+    Dataset is augmented by a factor of x8 from the
+    transformations of symmetry group D4. For boards,
+    this is done by starting with 1/8 corner and:
+        - getting the neighboring corner
+        - flipping the quadrant along one axis
+        - flipping the half-square along the other axis
+
+    Args:
+        boards: input list of boards
+        results: input results. Can be either a list of
+            move indices or a list of score vectors
+
+    Returns:
+        boards: list of boards
+        results: list of mcts_nn scores
+
+    Raises:
+        TypeError: if results contains incorrect type
+
+    """
+    if type(results[0]) is int:
+        result_type = 'index'
+    elif len(results[0]) == SIZE:
+        result_type = 'vector'
+    else:
+        raise TypeError('results contains incorrect type')
+
+    boards = np.concatenate((boards, np.swapaxes(boards, 1, 2)))
+    boards = np.concatenate((boards, np.flip(boards, axis=1)))
+    boards = np.concatenate((boards, np.flip(boards, axis=2)))
+    if result_type == 'index':
+        # The mapping of indices preserves cycle/anticycle, so could
+        # do with modular arithmetic, but a lookup table is easier
+        INDEX_DICT = {
+            0: [0, 1, 0, 3, 2, 1, 2, 3],
+            1: [1, 0, 3, 0, 1, 2, 3, 2],
+            2: [2, 3, 2, 1, 0, 3, 0, 1],
+            3: [3, 2, 1, 2, 3, 0, 1, 0]
+        }
+        results = [INDEX_DICT[index] for index in results]
+        results = np.transpose(results).flatten()
+
+    else:
+        # TODO: Implement score vector augmentation
+        raise NotImplementedError
+
+    return boards, results
 
 
-def train(model, boards, results, epochs=10):
+def train(model, boards, results, epochs=10, do_augment=True):
     """Trains a model using model.fit on a set of boards and results
 
     mcts_nn scores are converted to one hot before training
@@ -203,12 +254,20 @@ def train(model, boards, results, epochs=10):
         boards: list of boards
         results: list of mcts_nn scores
         epochs (int): number of epochs
+            Defaults to 10
+        do_augment (bool): whether to do data augmentation
+            Defaults to True
 
     """
-    model.fit(np.asarray(boards),
-              to_categorical(np.argmax(results, axis=-1), num_classes=4),
-              epochs=epochs,
-              verbose=2)
+    boards = np.asarray(boards)
+    results = np.argmax(results, axis=-1)
+    if do_augment:
+        boards, results = augment(boards, results)
+
+    return model.fit(boards,
+                     to_categorical(results, num_classes=4),
+                     epochs=epochs,
+                     verbose=2)
 
 
 def benchmark(model, number=1000, save=False):
@@ -218,7 +277,7 @@ def benchmark(model, number=1000, save=False):
         model: keras model to benchmark. Can be a model
             or the name of a model to load.
         number: number of games to run.
-            Defaults to 1000.
+            Defaults to 1000
         save (bool): Whether to save benchmark results to
             a file of the model's name. Defaults to False
 
@@ -230,9 +289,9 @@ def benchmark(model, number=1000, save=False):
     lines = [Board(gen=True, draw=False) for _ in range(number)]
     dead = []
     scores = []
-    counter = number//200
+    counter = number // 200
     while lines:
-        if len(lines)//200 < counter:
+        if len(lines) // 200 < counter:
             counter -= 1
             print('>{} remaining'.format(counter * 200))
         preds = model.predict(np.asarray([line.board for line in lines]))
@@ -255,7 +314,7 @@ def benchmark(model, number=1000, save=False):
         file_name = 'benchmarks/nn2048v{}.csv'.format(model.name)
         with open(file_name, 'w+') as file:
             for score in scores:
-                file.write(str(score)+'\n')
+                file.write(str(score) + '\n')
         print('saved to {}'.format(file_name))
     return scores.mean(), scores.std()
 
@@ -273,11 +332,11 @@ def main_train():
         max_tile.append(a.board.max())
         train(m, b, r, epochs=50)
         del b, r
-        save_model(m, '1.{}'.format(i+1))
+        save_model(m, '1.{}'.format(i + 1))
 
     for i, (s, t) in enumerate(zip(high_score, max_tile)):
         print('Game {}, Score {}, Max Tile {}'.
-              format(i, s, int(2**t)))
+              format(i, s, int(2 ** t)))
 
 
 def main_test():
@@ -289,4 +348,10 @@ def main_test():
 
 
 if __name__ == '__main__':
-    main_test()
+    a = np.array([[0, 1, 1, 1],
+                  [0, 0, 0, 1],
+                  [0, 1, 1, 1],
+                  [0, 0, 0, 1]])
+    b = [a, np.rot90(a)]
+    r = [0, 3]
+    x, y = augment(b, r)
