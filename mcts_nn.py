@@ -175,7 +175,7 @@ def make_data(game, model, number=10, verbose=False):
     while True:
         scores = mcts_nn(game, model, number)
         if verbose:
-            print(scores)
+            print(np.trunc(scores))
         if sum(scores) > 0:
             boards.append(np.copy(game.board))
             results.append(scores)
@@ -215,10 +215,12 @@ def augment(boards, results):
         TypeError: if results contains incorrect type
 
     """
-    if type(results[0]) is int:
-        result_type = 'index'
-    elif len(results[0]) == SIZE:
+    if type(results[0]) == list:
         result_type = 'vector'
+    elif type(results[0]) == int:
+        result_type = 'index'
+    elif np.issubdtype(results[0], np.integer):
+        result_type = 'index'
     else:
         raise TypeError('results contains incorrect type')
 
@@ -263,7 +265,7 @@ def train(model, boards, results, epochs=10, do_augment=True):
     results = np.argmax(results, axis=-1)
     if do_augment:
         boards, results = augment(boards, results)
-
+    # TODO: Update model name
     return model.fit(boards,
                      to_categorical(results, num_classes=4),
                      epochs=epochs,
@@ -316,7 +318,46 @@ def benchmark(model, number=1000, save=False):
             for score in scores:
                 file.write(str(score) + '\n')
         print('saved to {}'.format(file_name))
-    return scores.mean(), scores.std()
+
+    ave = scores.mean()
+    std = scores.std()
+    print('Ave {}'.format(ave))
+    print('Std {}'.format(std))
+    return ave, std
+
+
+def play_mcts_nn(game, model, number=10, verbose=False):
+    """Plays through one game using mcts_nn. Does not return
+    board/score history, only final result.
+
+    Args:
+        game (Board): the starting game state. If `None`
+            is passed, a new Board is generated.
+        model: keras model to predict moves
+        number (int): # of lines to try for each move.
+            Defaults to 10
+        verbose (bool): whether to print mcts scores
+            Defaults to False
+
+    Returns:
+        final_board, final_score
+
+    """
+    if not game:
+        game = Board(gen=True)
+    while True:
+        scores = mcts_nn(game, model, number)
+        if verbose:
+            print(np.trunc(scores))
+        for i in np.flipud(np.argsort(scores)):
+            if game.move(i):
+                game.generate_tile()
+                game.draw()
+                break
+        else:
+            print('Game Over')
+            break
+    return game.board, game.score
 
 
 def main_train():
@@ -330,9 +371,9 @@ def main_train():
         b, r = make_data(a, m)
         high_score.append(a.score)
         max_tile.append(a.board.max())
-        train(m, b, r, epochs=50)
+        train(m, b, r, epochs=50, do_augment=True)
         del b, r
-        save_model(m, '1.{}'.format(i + 1))
+        save_model(m, '2.{}'.format(i + 1))
 
     for i, (s, t) in enumerate(zip(high_score, max_tile)):
         print('Game {}, Score {}, Max Tile {}'.
@@ -340,18 +381,23 @@ def main_train():
 
 
 def main_test():
-    for name in ['1.1', '1.3', '1.5']:
+    for name in ['2.1', '2.2', '2.3']:
         m = get_model(name)
-        ave, std = benchmark(m, save=False)
-        print('Ave {}'.format(ave))
-        print('Std {}'.format(std))
+        benchmark(m, save=True)
+
+
+def main_mcts_benchmark():
+    m = get_model('2.2')
+    final_boards = []
+    final_scores = []
+    for _ in range(5):
+        b, s = play_mcts_nn(None, m)
+        final_boards.append(int(2 ** b.max()))
+        final_scores.append(s)
+    print('\n------\n')
+    print(final_boards)
+    print(final_scores)
 
 
 if __name__ == '__main__':
-    a = np.array([[0, 1, 1, 1],
-                  [0, 0, 0, 1],
-                  [0, 1, 1, 1],
-                  [0, 0, 0, 1]])
-    b = [a, np.rot90(a)]
-    r = [0, 3]
-    x, y = augment(b, r)
+    main_mcts_benchmark()
