@@ -174,3 +174,35 @@
 # Augmentation
     The symmetry of the game (square group D4, containing 8 elements) necessitates the use of data augmentation to produce a symmetrically trained model. However, doing so will eliminate any corner bias (ex. always putting highest tile in the top right corner). These non-symmetric heuristics may be beneficial in the beginning, but the optimal model should be symmetric.
 
+    Alternative, much harder to implement, is to transform boards to a standardized orientation that collapses all symmetries. Easiest way would be to place the center of mass of the board in one of the 8 triangle slices of the square.
+
+
+# Trial with fixed seeds and augmentation
+    Game 0, Score 5260, Max Tile 512
+    Game 1, Score 27416, Max Tile 2048
+    Game 2, Score 27396, Max Tile 2048
+    Game 3, Score 14332, Max Tile 1024
+    Game 4, Score 11848, Max Tile 1024
+    Game after first iteration of training always performs well for some reason. Acheived 2048 win, but is it consistent?
+# play_mcts_nn benchmark with models v2
+    Plain benchmarks of models 2.1      2.2     2.3
+                        Mean   1758,    2216,   1634
+                        StDev  1006,    1095,    782
+    Model 2.2 had marginally higher score during training. 5 play_mcts_nn benchmarks:
+        Score 16840, Max Tile 1024
+        Score  9716, Max Tile 1024
+        Score 12220, Max Tile 1024
+        Score 13912, Max Tile 1024
+        Score  2912, Max Tile  256
+        Average score: 11120
+        Standard Dev:   5270
+        Given heavy skew, cannot use central limit theorem with these data. True average between 6000 and 16000. The one 2048 game seems to have been mostly luck, in the upper tail of the distribution. More training required for robust performance.
+    Model 2.2 had a significant higher play_nn benchmark. 5 play_mcts_nn benchmarks:
+        Score  7096, Max Tile  512
+        Score 16260, Max Tile 1024
+        Score  7156, Max Tile  512
+        Score 12036, Max Tile 1024
+        Score 23292, Max Tile 2048, 2048 tile formed at score 18268 => 20328
+        Average score: 13168
+        Standard Dev:   6826
+        Acheived 1/5 2048 game. True average between 6000 and 20000. From statistical analysis, the standard error of the mean might be around 1500.
