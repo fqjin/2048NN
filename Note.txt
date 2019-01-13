@@ -1,0 +1,16 @@
+Game 0, Score 16136, Max Tile 1024
+Game 1, Score 12464, Max Tile 1024
+Game 2, Score 11100, Max Tile 1024
+Game 3, Score 15868, Max Tile 1024
+Game 4, Score 13492, Max Tile 1024
+
+3.9
+Just a fluke.
+1024, 1024, 64, 512, 1024
+13928, 11640, 564, 7216, 15652
+
+[[ 8.   . 16.  4.]
+ [ 2. 16.  8.  2.]
+ [  .  8.  2.   .]
+ [ 8.  4.   .  2.]]
+ Score : 0

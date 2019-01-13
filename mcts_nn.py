@@ -1,7 +1,7 @@
 import numpy as np
 from keras import Sequential
 from keras.engine.saving import load_model
-from keras.layers import Flatten, Dense
+from keras.layers import Flatten, Dense, Conv2D, MaxPooling2D, Activation
 from keras.utils import to_categorical
 
 from board import Board
@@ -38,11 +38,52 @@ def simple_model(features=16, layers=1, name=None):
     model = Sequential()
     if name:
         model.name = name
-    model.add(Flatten(input_shape=(SIZE, SIZE)))
+    model.add(Flatten(input_shape=(SIZE, SIZE, 1)))
     # TODO: Test effect of batch norm
     for _ in range(layers):
         model.add(Dense(features, activation='relu'))
     model.add(Dense(8, activation='relu'))
+    model.add(Dense(4, activation='softmax'))
+    model.compile(loss='categorical_crossentropy',
+                  optimizer='adam')
+    return model
+
+
+def conv_model(features=8, layers=3, name=None):
+    """Creates and returns a convolutional keras model
+
+    Simple convolutional model:
+    -2x2 convolutional filter x `features` x `layers`
+        -no activation used for first layer
+    -maxpool of entire board for each feature
+    -Flatten
+    -Dense layer of size 4 using softmax for output
+
+    Args:
+        features: number of conv features per layers
+            Defaults to 8
+        layers: number of conv layers
+            Defaults to 3
+        name: optional name for model
+
+    """
+    model = Sequential()
+    if name:
+        model.name = name
+
+    model.add(Conv2D(features, 2,
+                     padding='same',
+                     input_shape=(SIZE, SIZE, 1),
+                     use_bias=False))
+    # no activation or bias for the first layer
+    for _ in range(layers - 2):
+        model.add(Conv2D(features, 2,
+                         padding='same',
+                         activation='relu'))
+    model.add(Conv2D(features, 2, padding='same'))
+    model.add(MaxPooling2D(pool_size=DIMENSIONS))
+    model.add(Activation('relu'))  # relu after maxpool
+    model.add(Flatten())
     model.add(Dense(4, activation='softmax'))
     model.compile(loss='categorical_crossentropy',
                   optimizer='adam')
@@ -86,7 +127,7 @@ def play_nn(game, model, press_enter=False):
     while True:
         if press_enter and input() == 'q':
             break
-        pred = model.predict(np.expand_dims(game.board, 0))[0]
+        pred = model.predict(np.reshape(game.board, (1, SIZE, SIZE, 1)))[0]
         print(pred)
         for i in np.flipud(np.argsort(pred)):
             if game.move(i):
@@ -128,7 +169,8 @@ def mcts_nn(game, model, number=10):
 
     dead = []
     while lines:
-        preds = model.predict(np.asarray([line.board for line in lines]))
+        preds = model.predict(np.expand_dims(
+            np.asarray([line.board for line in lines]), -1))
         preds = np.fliplr(np.argsort(preds))
         for line, order in zip(lines, preds):
             for j in order:
@@ -179,7 +221,6 @@ def make_data(game, model, number=10, verbose=False):
         if sum(scores) > 0:
             boards.append(np.copy(game.board))
             results.append(scores)
-            # TODO: only store argmax in results
         for i in np.flipud(np.argsort(scores)):
             if game.move(i):
                 game.generate_tile()
@@ -265,6 +306,7 @@ def train(model, boards, results, epochs=10, do_augment=True):
     results = np.argmax(results, axis=-1)
     if do_augment:
         boards, results = augment(boards, results)
+    boards = np.expand_dims(boards, -1)
     # TODO: Update model name
     return model.fit(boards,
                      to_categorical(results, num_classes=4),
@@ -289,6 +331,11 @@ def benchmark(model, number=1000, save=False):
     if type(model) is str:
         model = get_model(model)
     lines = [Board(gen=True, draw=False) for _ in range(number)]
+    for line in lines:
+        line.board = np.array([[3., 0., 4., 2.],
+                               [1., 4., 3., 1.],
+                               [0., 3., 1., 0.],
+                               [3., 2., 0., 1.]])
     dead = []
     scores = []
     counter = number // 200
@@ -296,7 +343,8 @@ def benchmark(model, number=1000, save=False):
         if len(lines) // 200 < counter:
             counter -= 1
             print('>{} remaining'.format(counter * 200))
-        preds = model.predict(np.asarray([line.board for line in lines]))
+        preds = model.predict(np.expand_dims(
+            np.asarray([line.board for line in lines]), -1))
         preds = np.fliplr(np.argsort(preds))
         for line, order in zip(lines, preds):
             for j in order:
@@ -361,19 +409,19 @@ def play_mcts_nn(game, model, number=10, verbose=False):
 
 
 def main_train():
-    m = simple_model()
+    m = conv_model()
     m.summary()
     high_score = []
     max_tile = []
 
     for i in range(5):
         a = Board()
-        b, r = make_data(a, m)
+        b, r = make_data(a, m, number=20)
         high_score.append(a.score)
         max_tile.append(a.board.max())
         train(m, b, r, epochs=50, do_augment=True)
         del b, r
-        save_model(m, '2.{}'.format(i + 1))
+        save_model(m, '4.{}'.format(i + 1))
 
     for i, (s, t) in enumerate(zip(high_score, max_tile)):
         print('Game {}, Score {}, Max Tile {}'.
@@ -381,13 +429,13 @@ def main_train():
 
 
 def main_test():
-    for name in ['2.1', '2.2', '2.3']:
+    for name in ['3.8','3.9','3.10']:
         m = get_model(name)
         benchmark(m, save=True)
 
 
 def main_mcts_benchmark():
-    m = get_model('2.2')
+    m = get_model('3.9')
     final_boards = []
     final_scores = []
     for _ in range(5):
@@ -400,4 +448,4 @@ def main_mcts_benchmark():
 
 
 if __name__ == '__main__':
-    main_mcts_benchmark()
+    main_test()
