@@ -162,7 +162,7 @@
       iter 2 (100 epcohs) score  5360, max_tile 512
          -did dilution from higher score boards make model perform worse on lower scores?
          -could also just be random
-# Second trial with fixed seeds
+# Second trial with fixed seeds (v1)
     Game 0, Score 5260, Max Tile 512
     Game 1, Score 10880, Max Tile 1024
     Game 2, Score 10884, Max Tile 1024
@@ -177,7 +177,7 @@
     Alternative, much harder to implement, is to transform boards to a standardized orientation that collapses all symmetries. Easiest way would be to place the center of mass of the board in one of the 8 triangle slices of the square.
 
 
-# Trial with fixed seeds and augmentation
+# Trial with fixed seeds and augmentation (v2)
     Game 0, Score 5260, Max Tile 512
     Game 1, Score 27416, Max Tile 2048
     Game 2, Score 27396, Max Tile 2048
@@ -206,3 +206,35 @@
         Average score: 13168
         Standard Dev:   6826
         Acheived 1/5 2048 game. True average between 6000 and 20000. From statistical analysis, the standard error of the mean might be around 1500.
+
+        
+# Convolutional network (v3)
+    Implemented a simple convolutional network that will hopefully learn the correct relations between neighboring tiles to play the game intelligently. The implementation required that an additional axis be added at the end to all input boards. This makes previously saved models v1 and v2 incompatible; however, new simple_models will be compatible.
+        Game 0, Score 11880, Max Tile 1024
+        Game 1, Score  4644, Max Tile  512
+        Game 2, Score  1960, Max Tile  128
+        Game 3, Score  7284, Max Tile  512
+        Game 4, Score 14148, Max Tile 1024
+    Removed bias for first layer and retrained (number=10 lines per move)
+        Game 0, Score 11880, Max Tile 1024
+        Game 1, Score 15072, Max Tile 1024
+        Game 2, Score 12132, Max Tile 1024
+        Game 3, Score  7412, Max Tile  512
+        Game 4, Score  4880, Max Tile  512
+        Game 5, Score 23308, Max Tile 2048
+        Game 6, Score 16176, Max Tile 1024
+        Game 7, Score  7040, Max Tile  512
+        Game 8, Score 25656, Max Tile 2048
+        Game 9, Score 15252, Max Tile 1024
+    Does better training quality reduce number of cycles? (number=20 lines per move)
+    Note: another group () showed that 2048 could be reached using pure MCTS with 100 lines per move
+        Game 0, Score 16136, Max Tile 1024
+        Game 1, Score 12464, Max Tile 1024
+        Game 2, Score 11100, Max Tile 1024
+        Game 3, Score 15868, Max Tile 1024
+        Game 4, Score 13492, Max Tile 1024
+        Results are more consistent, and all games reached 1024. However, none reached 2048.
+    MCTS benchmarking of model v3.9 shows that reaching 2048 is still an outlier. Not consistent at all.
+        Score:       1024,  1024,  64,  512,  1024
+        Max Tile:   13928, 11640, 564, 7216, 15652
+    
