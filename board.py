@@ -1,8 +1,10 @@
-import numpy as np
-from random import randint, randrange, seed
-# Do not use scientific notation
-np.set_printoptions(suppress=True)
-seed(1234)
+import torch
+import random
+from random import randint, randrange
+
+s = 12345
+random.seed(s)
+torch.manual_seed(s)
 
 # Board Dimensions
 SIZE = 4
@@ -15,56 +17,59 @@ class Board:
     Numbers are stored as their log-base-2
 
     Args:
-        gen (bool): Whether to generate two initial tiles.
-            Defaults to True.
-        draw (bool): if gen is True, whether to draw the board.
-            Defaults to True.
+        device: torch device
+        gen (bool): whether to generate two initial tiles.
+            Defaults to True
+        draw (bool): whether to draw the board, if gen is True.
+            Defaults to False
 
     Attributes:
-        board: numpy array of board tiles, stored as log-base-2
+        board: torch tensor of board tiles, stored as log-base-2
         score: int score, the sum of all combination values
 
     """
-    def __init__(self, gen=True, draw=True):
-        self.board = np.zeros(DIMENSIONS)
+    def __init__(self, device, gen=True, draw=False):
+        self.device = device
+        self.board = torch.zeros(DIMENSIONS, dtype=torch.uint8, device=device)
+        # TODO: compare dtypes
         self.score = 0
         if gen:
             self.generate_tile()
             self.generate_tile()
-            if draw: self.draw()
+            if draw:
+                self.draw()
 
     def generate_tile(self):
         """Places a 2 or 4 in a random empty tile
         Unhandled error if board is full
         Chance of 2 is 90%
         """
-        empty = np.transpose(np.where(self.board == 0))
+        empty = (self.board == 0).nonzero()
         position = empty[randrange(len(empty))]
         if randint(0, 9):
             self.board[position[0], position[1]] = 1
         else:
             self.board[position[0], position[1]] = 2
         #   self.board[tuple(position)] is 3 times slower
+        # self.board[position[0], position[1]] = (not randint(0, 9)) * 2 or 1
 
     def draw(self):
         """Prints board state"""
-        print(str(2**self.board).replace('1.', ' .', SIZE_SQRD))
+        # TODO: Needs pretty print for torch tensor
+        # print(str(2**self.board).replace('1', ' ', SIZE_SQRD))
+        print(2**self.board.int())
+        # 2**uint8 overflows
         print(' Score : {}'.format(self.score))
-
-    def check_full(self):
-        """Checks if board is full and has no empty tiles"""
-        # TODO: Do I actually need Board.check_full() function?
-        return np.count_nonzero(self.board) == SIZE_SQRD
 
     def restore(self, board, score):
         """Sets board and score state to the input values"""
-        self.board = np.copy(board)  # need to copy
+        self.board = board.clone()  # need to copy
         self.score = score  # immutable does not need copying
 
     def copy(self):
         """Returns a copy as a new Board object"""
-        temp = Board(gen=False)
-        temp.board = np.copy(self.board)
+        temp = Board(device=self.device, gen=False)
+        temp.board = self.board.clone()
         temp.score = self.score
         # Explicit saves time rather than calling restore
         return temp
@@ -102,7 +107,7 @@ class Board:
         # `list(row) != final` is faster than `any(row != final)`
         # if-else avoids computing np.array(final) when not moved
         if list(row) != final:
-            return np.array(final), True
+            return torch.tensor(final), True
         else:
             return row, False
 
@@ -130,9 +135,16 @@ class Board:
             elif direction == 1:
                 self.board[:, i], moved = self.merge_row(self.board[:, i])
             elif direction == 2:
-                self.board[i, ::-1], moved = self.merge_row(self.board[i, ::-1])
+                x = self.board[i].flip(0)
+                x, moved = self.merge_row(x)
+                self.board[i] = x.flip(0)
+                # self.board[i, ::-1], moved = self.merge_row(self.board[i, ::-1])
+                # torch cannot use negative strides
             elif direction == 3:
-                self.board[::-1, i], moved = self.merge_row(self.board[::-1, i])
+                x = self.board[:, i].flip(0)
+                x, moved = self.merge_row(x)
+                self.board[:, i] = x.flip(0)
+                # self.board[::-1, i], moved = self.merge_row(self.board[::-1, i])
             else:
                 raise IndexError('Only 0 to 3 accepted as directions')
 
@@ -165,4 +177,3 @@ def play_fixed(game=None, press_enter=False):
         else:
             print('Game Over')
             break
-
