@@ -17,7 +17,7 @@ class Board:
     Numbers are stored as their log-base-2
 
     Args:
-        device: torch device
+        device: torch device. Defaults to 'cpu'
         gen (bool): whether to generate two initial tiles.
             Defaults to True
         draw (bool): whether to draw the board, if gen is True.
@@ -28,11 +28,13 @@ class Board:
         score: int score, the sum of all combination values
 
     """
-    def __init__(self, device, gen=True, draw=False):
+    def __init__(self, device='cpu', gen=True, draw=False):
         self.device = device
         self.board = torch.zeros(DIMENSIONS, dtype=torch.uint8, device=device)
         # TODO: compare dtypes
         self.score = 0
+        self.dead = 0
+        self.moved = 0
         if gen:
             self.generate_tile()
             self.generate_tile()
@@ -41,8 +43,11 @@ class Board:
 
     def generate_tile(self):
         """Places a 2 or 4 in a random empty tile
-        Unhandled error if board is full
         Chance of 2 is 90%
+
+        Raises:
+            ValueError: if board is full (randrange(0)]
+
         """
         empty = (self.board == 0).nonzero()
         position = empty[randrange(len(empty))]
@@ -50,15 +55,13 @@ class Board:
             self.board[position[0], position[1]] = 1
         else:
             self.board[position[0], position[1]] = 2
-        #   self.board[tuple(position)] is 3 times slower
+        # self.board[tuple(position)] is 3 times slower
         # self.board[position[0], position[1]] = (not randint(0, 9)) * 2 or 1
 
     def draw(self):
         """Prints board state"""
-        # TODO: Needs pretty print for torch tensor
-        # print(str(2**self.board).replace('1', ' ', SIZE_SQRD))
-        print(2**self.board.int())
-        # 2**uint8 overflows
+        expo = 2**self.board.float()
+        print(str(expo.cpu().numpy()).replace('1.', ' .', SIZE_SQRD))
         print(' Score : {}'.format(self.score))
 
     def restore(self, board, score):
@@ -128,29 +131,115 @@ class Board:
             IndexError: if direction index is not 0 to 3
 
         """
-        moved_any = False
-        for i in range(SIZE):
-            if direction == 0:
+        moved_any = 0
+        if direction == 0:
+            for i in range(SIZE):
                 self.board[i], moved = self.merge_row(self.board[i])
-            elif direction == 1:
+                moved_any += moved
+        elif direction == 1:
+            for i in range(SIZE):
                 self.board[:, i], moved = self.merge_row(self.board[:, i])
-            elif direction == 2:
+                moved_any += moved
+        elif direction == 2:
+            for i in range(SIZE):
+                # torch cannot use negative strides
                 x = self.board[i].flip(0)
                 x, moved = self.merge_row(x)
                 self.board[i] = x.flip(0)
-                # self.board[i, ::-1], moved = self.merge_row(self.board[i, ::-1])
-                # torch cannot use negative strides
-            elif direction == 3:
+                moved_any += moved
+        elif direction == 3:
+            for i in range(SIZE):
                 x = self.board[:, i].flip(0)
                 x, moved = self.merge_row(x)
                 self.board[:, i] = x.flip(0)
-                # self.board[::-1, i], moved = self.merge_row(self.board[::-1, i])
-            else:
-                raise IndexError('Only 0 to 3 accepted as directions')
+                moved_any += moved
+        else:
+            raise IndexError('''Only 0 to 3 accepted as directions,
+                {} given'''.format(direction))
+        return bool(moved_any)
 
-            if moved:
-                moved_any = True
-        return moved_any
+    @staticmethod
+    def merge_row_batch(rows):
+        """Merge a batch of rows
+
+        Args:
+            rows: tensor of rows, should be shape (_, SIZE)
+
+        Returns:
+            newrows: new tensor after performing move left to all rows
+            score: score generated from combinations, per row
+
+        """
+        newrows = rows.clone().t()  # transpose to index columns first
+        scores = torch.zeros(len(rows), dtype=torch.int, device=rows.device)
+        moved = torch.zeros(len(rows), dtype=torch.int, device=rows.device)
+        # Shift nonzeros to the left
+        for i in reversed(range(SIZE - 1)):
+            moved += ((newrows[i] == 0) * (newrows[i+1] != 0)).int()
+            temp = newrows[i] == 0  # column is zero
+            for j in range(SIZE - 1 - i):
+                newrows[i+j] += newrows[i+j+1] * temp  # shift over if zero
+                newrows[i+j+1] *= (1 - temp)  # clear after shift
+        # Merge tiles
+        for i in range(SIZE - 1):
+            moved += ((newrows[i] != 0) * (newrows[i] == newrows[i+1])).int()
+            temp = (newrows[i] == newrows[i+1]) * (newrows[i] != 0)
+            newrows[i] += temp
+            scores += 2 ** newrows[i].int() * temp.int()
+            newrows[i+1] *= (1 - temp)
+            for j in range(1, SIZE - 1 - i):
+                newrows[i+j] += newrows[i+j+1] * temp
+                newrows[i+j+1] *= (1 - temp)
+        # alternative moved:
+        # moved = torch.sum((rows == newrows), dim=1) != SIZE
+        return newrows.t(), scores, moved
+
+    @staticmethod
+    def move_batch(games, moves):
+        """Perform moves on a batch of games
+
+        Args:
+            games: a list of Board objects
+            moves: a list of direction indices (0 to 3)
+
+        Returns:
+            None
+            - board, moved, and score attributes of games are modified
+
+        """
+        if len(games) == 0:
+            return None
+        rows = []
+        for game, move in zip(games, moves):
+            if move == 0:
+                rows.append(game.board)
+            elif move == 1:
+                rows.append(game.board.t())
+            elif move == 2:
+                rows.append(game.board.flip(1))
+            elif move == 3:
+                rows.append(game.board.t().flip(1))
+            else:
+                raise IndexError('''Only 0 to 3 accepted as directions, 
+                    {} given'''.format(move))
+        rows = torch.cat(rows)
+        newrows, scores, moved = Board.merge_row_batch(rows)
+        newrows = newrows.split(SIZE)
+        scores = torch.sum(scores.view(-1, SIZE), dim=1)
+        moved = torch.sum(moved.view(-1, SIZE), dim=1)
+        for game, board, score, move, m in \
+                zip(games, newrows, scores, moves, moved):
+            if m:
+                game.moved += m
+                game.score += score
+                if move == 0:
+                    game.board = board
+                elif move == 1:
+                    game.board = board.t()
+                elif move == 2:
+                    game.board = board.flip(1)
+                else:
+                    game.board = board.flip(1).t()
 
 
 def play_fixed(game=None, press_enter=False):
@@ -165,15 +254,50 @@ def play_fixed(game=None, press_enter=False):
 
     """
     if not game:
-        game = Board(gen=True)
+        game = Board('cpu', gen=True)
     while True:
         if press_enter and input() == 'q':
             break
         for i in range(4):
             if game.move(i):
                 game.generate_tile()
-                game.draw()
+                # game.draw()
                 break
         else:
+            game.draw()
             print('Game Over')
             break
+
+
+def play_fixed_batch(games=None, number=None):
+    """Run 2048 with the fixed move priority L,U,R,D.
+
+    Args (optional):
+        games: a list of games to play. Defaults to None
+        number: if no games provided, generate this number
+
+    """
+    if not games:
+        if not number:
+            raise ValueError('games and number both None')
+        games = [Board('cpu', gen=True) for _ in range(number)]
+    # fixed_moves = torch.arange(4).repeat((len(games), 1))
+    while True:
+        for i in range(4):
+            subgames = []
+            for g in games:
+                if not g.dead and not g.moved:
+                    subgames.append(g)
+            Board.move_batch(subgames, [i]*len(subgames))
+        for g in games:
+            if g.moved:
+                g.moved = 0  # This can be parallelized
+                g.generate_tile()
+            else:
+                g.dead = 1
+        if 0 not in [g.dead for g in games]:
+            break
+    for g in games:
+        g.draw()
+    print('Game Over')
+    return games
