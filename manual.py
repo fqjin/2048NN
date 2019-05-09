@@ -1,5 +1,5 @@
 import curses  # pip install windows-curses
-from board import Board
+from board import Board, SIZE_SQRD
 
 
 def play_manual(game=None):
@@ -17,7 +17,8 @@ def play_manual(game=None):
     try:
         # draw_curses function with screen.addstr not needed
         if not game:
-            game = Board(gen=True)
+            game = Board(device='cpu', gen=True, draw=False)
+            curses_draw(game, screen)
         while True:
             char = screen.getch()
             i = -1
@@ -29,7 +30,7 @@ def play_manual(game=None):
             if i != -1:
                 if game.move(i):
                     game.generate_tile()
-                    game.draw()
+                    curses_draw(game, screen)
 
     finally:  # cleanup curses
         curses.nocbreak()
@@ -37,6 +38,15 @@ def play_manual(game=None):
         curses.echo()
         curses.endwin()
         print('Game Over')
+
+
+def curses_draw(game, screen):
+    """Draw function for curses"""
+    screen.clear()
+    expo = 2**game.board.float()
+    screen.addstr(str(expo.cpu().numpy()).replace('1.', ' .', SIZE_SQRD))
+    screen.addstr('\n Score : {}'.format(game.score))
+    screen.refresh()
 
 
 if __name__ == '__main__':
