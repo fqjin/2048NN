@@ -1,14 +1,16 @@
-import numpy as np
 from board import Board
 
 
-def mcts_fixed_batch(game, number=10, move_order=(0, 1, 2, 3)):
-    """Run tree search using a fixed move order for generating lines
-    Lines are kept in a list, and played through as a batch.
+def mcts_fixed_batch(origin, number=10, move_order=(0, 1, 2, 3)):
+    """Run batch tree search using a fixed move order
+
+    Input game is copied to a list of games.
+    Each line played to end using move_batch
+    Code is very similar to `play_fixed_batch`
 
     Args:
-        game (Board): the starting game state
-        number (int): # of lines to try for each move.
+        origin (Board): the starting game state
+        number (int): # of lines to simulate for each move.
             Defaults to 10
         move_order: tuple of the 4 move indices in order.
             Defaults to (0, 1, 2, 3)
@@ -17,38 +19,39 @@ def mcts_fixed_batch(game, number=10, move_order=(0, 1, 2, 3)):
         list: score increase for each move [Left, Up, Right, Down]
 
     """
-    original = game.copy()
-    scores = [0, 0, 0, 0]
-    lines = []
+    games = []
+    result = [1, 1, 1, 1]
     for i in range(4):
-        if game.move(i):
-            game.restore(original.board, original.score)
-            # Sacrifice one move(i) computation
-            for _ in range(number):
-                temp = game.copy()
-                temp.move(i)
-                temp.generate_tile()
-                temp.index = i
-                lines.append(temp)
+        if origin.copy().move(i):
+            lines = [origin.copy() for _ in range(number)]
+            Board.move_batch(lines, i)
+            games.extend(lines)
+        else:
+            result[i] = 0
+    for g in games:
+        g.generate_tile()
 
-    dead = []
-    while lines:
-        for line in lines:
-            for j in move_order:
-                if line.move(j):
-                    line.generate_tile()
-                    break
+    while True:
+        for i in range(4):
+            subgames = [
+                g for g in games if not g.dead and not g.moved
+            ]
+            Board.move_batch(subgames, i)
+        for g in games:
+            if g.moved:
+                g.moved = 0
+                g.generate_tile()
             else:
-                dead.append(line)
+                g.dead = 1
+        if 0 not in [g.dead for g in games]:
+            break
 
-        if dead:
-            for line in dead:
-                scores[line.index] += line.score
-                lines.remove(line)
-            dead = []
-
-    scores = [score/number - original.score
-              if score else 0.0
-              for score in scores]
-    return scores
-
+    index = 0
+    scores = [g.score for g in games]
+    for i in range(4):
+        if result[i] == 0:
+            continue
+        else:
+            result[i] = sum(scores[index:index+number]) / number - origin.score
+            index += number
+    return result

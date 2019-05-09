@@ -131,6 +131,8 @@ class Board:
             IndexError: if direction index is not 0 to 3
 
         """
+        # TODO: Switch from merge_row to merge_row_batch.
+        #       This deprecates merge_row
         moved_any = 0
         if direction == 0:
             for i in range(SIZE):
@@ -209,6 +211,8 @@ class Board:
         """
         if len(games) == 0:
             return None
+        if isinstance(moves, int):
+            moves = [moves] * len(games)
         rows = []
         for game, move in zip(games, moves):
             if move == 0:
@@ -287,11 +291,10 @@ def play_fixed_batch(games=None, number=None, device='cpu'):
     # fixed_moves = torch.arange(4).repeat((len(games), 1))
     while True:
         for i in range(4):
-            subgames = []
-            for g in games:
-                if not g.dead and not g.moved:
-                    subgames.append(g)
-            Board.move_batch(subgames, [i]*len(subgames))
+            subgames = [
+                g for g in games if not g.dead and not g.moved
+            ]
+            Board.move_batch(subgames, i)
         for g in games:
             if g.moved:
                 g.moved = 0
