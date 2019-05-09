@@ -230,8 +230,8 @@ class Board:
         for game, board, score, move, m in \
                 zip(games, newrows, scores, moves, moved):
             if m:
-                game.moved += m
-                game.score += score
+                game.moved += m.item()
+                game.score += score.item()
                 if move == 0:
                     game.board = board
                 elif move == 1:
@@ -242,7 +242,7 @@ class Board:
                     game.board = board.flip(1).t()
 
 
-def play_fixed(game=None, press_enter=False):
+def play_fixed(game=None, device='cpu'):
     """Run 2048 with the fixed move priority L,U,R,D.
 
     Args (optional):
@@ -251,36 +251,39 @@ def play_fixed(game=None, press_enter=False):
         press_enter (bool): Whether keyboard press is
             required for each step. Defaults to False.
             Type 'q' to quit when press_enter is True.
+        device: torch device. Defaults to 'cpu'
 
     """
     if not game:
-        game = Board('cpu', gen=True)
+        game = Board(device=device, gen=True)
     while True:
-        if press_enter and input() == 'q':
-            break
+        # if press_enter and input() == 'q':
+        #     break
         for i in range(4):
             if game.move(i):
                 game.generate_tile()
                 # game.draw()
                 break
         else:
-            game.draw()
-            print('Game Over')
+            # game.draw()
+            print(game.score)
+            # print('Game Over')
             break
 
 
-def play_fixed_batch(games=None, number=None):
+def play_fixed_batch(games=None, number=None, device='cpu'):
     """Run 2048 with the fixed move priority L,U,R,D.
 
     Args (optional):
         games: a list of games to play. Defaults to None
         number: if no games provided, generate this number
+        device: torch device. Defaults to 'cpu'
 
     """
     if not games:
-        if not number:
-            raise ValueError('games and number both None')
-        games = [Board('cpu', gen=True) for _ in range(number)]
+        # if not number:
+        #     raise ValueError('games and number both None')
+        games = [Board(device=device, gen=True) for _ in range(number)]
     # fixed_moves = torch.arange(4).repeat((len(games), 1))
     while True:
         for i in range(4):
@@ -291,13 +294,14 @@ def play_fixed_batch(games=None, number=None):
             Board.move_batch(subgames, [i]*len(subgames))
         for g in games:
             if g.moved:
-                g.moved = 0  # This can be parallelized
+                g.moved = 0
                 g.generate_tile()
             else:
                 g.dead = 1
         if 0 not in [g.dead for g in games]:
             break
     for g in games:
-        g.draw()
-    print('Game Over')
-    return games
+        # g.draw()
+        print(g.score)
+    # print('Game Over')
+    # return games
