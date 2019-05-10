@@ -5,6 +5,7 @@ from random import randint, randrange
 s = 12345
 random.seed(s)
 torch.manual_seed(s)
+torch.set_printoptions(sci_mode=False)
 
 # Board Dimensions
 SIZE = 4
@@ -46,10 +47,14 @@ class Board:
         Chance of 2 is 90%
 
         Raises:
-            ValueError: if board is full (randrange(0)]
+            ValueError: if board is full
+                (empty range for randrange)
 
         """
         empty = (self.board == 0).nonzero()
+        if len(empty) == 0:
+            print('Full')
+            self.draw()
         position = empty[randrange(len(empty))]
         if randint(0, 9):
             self.board[position[0], position[1]] = 1
