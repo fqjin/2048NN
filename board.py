@@ -1,16 +1,28 @@
-import torch
+import os
+import numpy as np
 import random
+import torch
 from random import randint, randrange
 
+# Seed
 s = 12345
 random.seed(s)
+np.random.seed(s)
 torch.manual_seed(s)
-torch.set_printoptions(sci_mode=False)
 
 # Board Dimensions
 SIZE = 4
 DIMENSIONS = (SIZE, SIZE)  # (4,4)
 SIZE_SQRD = SIZE*SIZE  # 16
+
+# Print options
+np.set_printoptions(suppress=True)
+CLEAR = 'clear' if os.name == 'posix' else 'cls'
+ARROWS = {0: '        \u2b9c ',
+          1: '        \u2b9d ',
+          2: '        \u2b9e ',
+          3: '        \u2b9f '}
+
 
 
 class Board:

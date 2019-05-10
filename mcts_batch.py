@@ -1,5 +1,6 @@
+import os
 import numpy as np
-from board import Board
+from board import Board, CLEAR, ARROWS
 
 
 def mcts_fixed_batch(origin, number=10, move_order=(0, 1, 2, 3)):
@@ -76,11 +77,13 @@ def play_mcts_fixed_batch(game, number=5, move_order=(0, 1, 2, 3), verbose=False
         game = Board(device='cpu', gen=True, draw=True)
     while True:
         scores = mcts_fixed_batch(game, number, move_order)
+        os.system(CLEAR)
         if verbose:
             print(scores)
         for i in np.flipud(np.argsort(scores)):
             # TODO: Test torch vs numpy speed
             if game.move(i):
+                print(ARROWS[i])
                 game.generate_tile()
                 game.draw()
                 break
