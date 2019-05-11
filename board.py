@@ -64,16 +64,12 @@ class Board:
 
         """
         empty = (self.board == 0).nonzero()
-        if len(empty) == 0:
-            print('Full')
-            self.draw()
+        # if len(empty) == 0:
+        #     print('Full')
+        #     self.draw()
         position = empty[randrange(len(empty))]
-        if randint(0, 9):
-            self.board[position[0], position[1]] = 1
-        else:
-            self.board[position[0], position[1]] = 2
+        self.board[position[0], position[1]] = 1 if randint(0, 9) else 2
         # self.board[tuple(position)] is 3 times slower
-        # self.board[position[0], position[1]] = (not randint(0, 9)) * 2 or 1
 
     def draw(self):
         """Prints board state"""
@@ -191,17 +187,14 @@ class Board:
         """
         newrows = rows.clone().t()  # transpose to index columns first
         scores = torch.zeros(len(rows), dtype=torch.int, device=rows.device)
-        moved = torch.zeros(len(rows), dtype=torch.int, device=rows.device)
         # Shift nonzeros to the left
         for i in reversed(range(SIZE - 1)):
-            moved += ((newrows[i] == 0) * (newrows[i+1] != 0)).int()
             temp = newrows[i] == 0  # column is zero
             for j in range(SIZE - 1 - i):
                 newrows[i+j] += newrows[i+j+1] * temp  # shift over if zero
                 newrows[i+j+1] *= (1 - temp)  # clear after shift
         # Merge tiles
         for i in range(SIZE - 1):
-            moved += ((newrows[i] != 0) * (newrows[i] == newrows[i+1])).int()
             temp = (newrows[i] == newrows[i+1]) * (newrows[i] != 0)
             newrows[i] += temp
             scores += 2 ** newrows[i].int() * temp.int()
@@ -209,9 +202,10 @@ class Board:
             for j in range(1, SIZE - 1 - i):
                 newrows[i+j] += newrows[i+j+1] * temp
                 newrows[i+j+1] *= (1 - temp)
-        # alternative moved:
-        # moved = torch.sum((rows == newrows), dim=1) != SIZE
-        return newrows.t(), scores, moved
+        # Check if moved
+        newrows = newrows.t()
+        moved = torch.sum((rows != newrows), dim=1)
+        return newrows, scores, moved
 
     @staticmethod
     def move_batch(games, moves):
