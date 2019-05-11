@@ -44,7 +44,6 @@ class Board:
     def __init__(self, device='cpu', gen=True, draw=False):
         self.device = device
         self.board = torch.zeros(DIMENSIONS, dtype=torch.uint8, device=device)
-        # TODO: compare dtypes
         self.score = 0
         self.dead = 0
         self.moved = 0
@@ -173,6 +172,59 @@ class Board:
                 {} given'''.format(direction))
         return bool(moved_any)
 
+    # This implementation is 2.6 times slower
+    # Hard to find a way to efficiently do random batch indexing
+    # @staticmethod
+    # def generate_tiles_batch(games):
+    #     """Generate tiles for a batch of games
+    #
+    #     Args:
+    #         games: a list of Board objects
+    #
+    #     """
+    #     len_games = len(games)
+    #     if len_games == 0:
+    #         return None
+    #     # TODO: it will be more efficient to use a BatchBoard object
+    #     boards = torch.stack([g.board for g in games])
+    #     empty = (boards == 0).nonzero()
+    #     randidx = torch.randint(low=0, high=16, size=(len_games,))
+    #     randnum = torch.randint(low=0, high=10, size=(len_games,))
+    #     number = 0
+    #     count = 0
+    #     e_idx = 0
+    #     done = False
+    #     reset = 0
+    #     for idx, num in zip(randidx, randnum):
+    #         while True:
+    #             position = empty[e_idx]
+    #             if done:
+    #                 if position[0] != number:
+    #                     e_idx += 1
+    #                 else:
+    #                     reset = e_idx
+    #                     done = False
+    #                 continue
+    #             if position[0] != number:
+    #                 e_idx = reset
+    #                 continue
+    #             if count != idx:
+    #                 count += 1
+    #                 e_idx += 1
+    #                 if e_idx == len(empty):
+    #                     e_idx = reset
+    #                 continue
+    #             else:
+    #                 boards[number, position[1], position[2]] = \
+    #                     1 if num else 2
+    #                 done = True
+    #                 e_idx += 1
+    #                 number += 1
+    #                 count = 0
+    #                 break
+    #     for i, g in enumerate(games):
+    #         g.board = boards[i]
+
     @staticmethod
     def merge_row_batch(rows):
         """Merge a batch of rows
@@ -283,7 +335,7 @@ def play_fixed(game=None, device='cpu'):
             # game.draw()
             print(game.score)
             # print('Game Over')
-            break
+            return game
 
 
 def play_fixed_batch(games=None, number=None, device='cpu'):
