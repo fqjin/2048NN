@@ -34,7 +34,7 @@ def mcts_fixed_batch(origin, number=10, move_order=(0, 1, 2, 3)):
         # g.moved = 0 not needed because temp.move(i) doesn't change moved
 
     while True:
-        for i in range(4):
+        for i in move_order:
             subgames = [
                 g for g in games if not g.dead and not g.moved
             ]
@@ -51,10 +51,9 @@ def mcts_fixed_batch(origin, number=10, move_order=(0, 1, 2, 3)):
     index = 0
     scores = [g.score for g in games]
     for i in range(4):
-        if result[i] == 0:
-            continue
-        else:
+        if result[i]:
             result[i] = sum(scores[index:index+number]) / number - origin.score
+            # TODO: Consider using mean of log score
             index += number
     return result
 
