@@ -19,23 +19,22 @@ def mcts_nn(model, origin, number=10):
 
     """
     games = []
-    result = [1, 1, 1, 1]
+    result = [0, 0, 0, 0]
     for i in range(4):
         temp = origin.copy()
         if temp.move(i):
             games.extend([temp.copy() for _ in range(number)])
         else:
-            result[i] = 0
+            result[i] = -1
     for g in games:
         g.generate_tile()
+    notdead = games.copy()
 
     model.eval()
     with torch.no_grad():
         while True:
             for i in range(4):
-                subgames = [
-                    g for g in games if not g.dead and not g.moved
-                ]
+                subgames = [g for g in notdead if not g.moved]
                 if i == 0:
                     boards = [g.board for g in subgames]
                     preds = model.forward(torch.stack(boards).float())
@@ -46,19 +45,20 @@ def mcts_nn(model, origin, number=10):
                 else:
                     moves = [g.pred[i] for g in subgames]
                 Board.move_batch(subgames, moves)
-            for g in games:
+            for g in notdead:
                 if g.moved:
                     g.moved = 0
                     g.generate_tile()
                 else:
                     g.dead = 1
-            if 0 not in [g.dead for g in games]:
+            notdead = [g for g in notdead if not g.dead]
+            if not len(notdead):
                 break
 
     index = 0
     scores = [g.score for g in games]
     for i in range(4):
-        if result[i]:
+        if not result[i]:
             result[i] = sum(scores[index:index+number]) / number - origin.score
             index += number
     return result
@@ -104,42 +104,53 @@ def play_nn(model, game, press_enter=False, device='cpu', verbose=False):
                 break
 
 
-def make_data(game, model, number=10, verbose=False):
+def selfplay(name, model, game, number=10, device='cpu', verbose=False):
     """Plays through one game using mcts_nn. Returns all
-    boards and computed scores of the main line for training.
+    boards and move choices of the main line for training.
 
     Args:
+        name (int): name for data
         game (Board): the starting game state. If `None`
             is passed, a new Board is generated.
         model: keras model to predict moves
         number (int): # of lines to try for each move.
             Defaults to 10
-        verbose (bool): whether to print mcts scores
+        device: torch device. Defaults to 'cpu'
+        verbose (bool): whether to print anything
             Defaults to False
 
     Returns:
         boards: list of boards
-        results: list of mcts_nn scores
+        moves: list of mcts_nn moves
 
     """
-    boards = []
-    results = []
     if not game:
-        game = Board(gen=True)
+        game = Board(gen=True, draw=verbose, device=device)
+    boards = []
+    moves = []
+    counter = 0
     while True:
-        scores = mcts_nn(game, model, number)
-        if verbose:
-            print(np.trunc(scores))
-        if sum(scores) > 0:
-            boards.append(np.copy(game.board))
-            results.append(scores)
-        for i in np.flipud(np.argsort(scores)):
-            if game.move(i):
-                game.generate_tile()
+        if not len(moves) % 20:
+            print('Move {}'.format(len(moves)))
+        boards.append(game.board.clone())
+        pred = mcts_nn(model, game, number=number)
+        # Only need to do argmax. If not possible, game is dead
+        i = np.argmax(pred)
+        if game.move(i):
+            game.generate_tile()
+            moves.append(i)
+            if verbose:
+                os.system(CLEAR)
+                print(pred)
+                print(ARROWS[i.item()])
                 game.draw()
-                break
+            continue
         else:
-            print('Game Over')
+            boards.pop()
             break
-
-    return boards, results
+    print('Game Over')
+    print('{} moves'.format(len(moves)))
+    if isinstance(name, int):
+        name = str(name).zfill(5)
+    np.savez('selfplay/'+name, boards=torch.stack(boards), moves=moves)
+    print('Saved as {}.npz'.format(name))
