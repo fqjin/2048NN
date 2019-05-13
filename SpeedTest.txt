@@ -21,3 +21,17 @@ Speed comparisons (in seconds) for various number of games. Result for 1 game is
 | 10 | 6.19 | 2.95 |
 | 100 | 66.2 | 9.47 |
 | 1000 | x | 63.9 |
+
+
+Timings for `mcts_nn` with `number=100`. Running mcts is about 3x slower using cuda tensors. GPU gives about 3x faster evaluation with the CNN. However, given the overhead of running the mcts, running on GPU is still slower. ConvNet game is faster than TestNet because the mcts lines die earlier.
+
+| Network | CPU | CUDA |
+| --- | --- | --- |
+| TestNet | 11.7| 47.3 |
+| ConvNet | 9.77 | 26.4 |
+
+Timings for 'play_nn' which does not do mcts (it only plays 1 game). Even this is slower due to slower `move` and `generate_tiles` functions on GPU. I should plan to optimize these functions in the future.
+
+| Network | CPU | CUDA |
+| --- | --- | --- |
+| ConvNet | 1.13 | 1.27 |

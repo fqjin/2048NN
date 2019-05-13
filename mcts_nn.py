@@ -39,7 +39,7 @@ def mcts_nn(model, origin, number=10):
                 subgames = [g for g in notdead if not g.moved]
                 if i == 0:
                     boards = [g.board for g in subgames]
-                    preds = model.forward(torch.stack(boards).float())
+                    preds = model.forward(torch.stack(boards).float().unsqueeze(1))
                     preds = torch.argsort(preds, dim=1, descending=True)
                     for g, p in zip(subgames, preds):
                         g.pred = p
@@ -91,17 +91,18 @@ def play_nn(model, game, press_enter=False, device='cpu', verbose=False):
         while True:
             if press_enter and input() == 'q':
                 break
-            pred = model.forward(game.board.unsqueeze(0).float())[0]
-            os.system(CLEAR)
-            if verbose:
-                print(pred)
+            pred = model.forward(game.board.float()[None, None, ...])[0]
             for i in torch.argsort(pred, descending=True):
                 if game.move(i):
-                    print(ARROWS[i.item()])
                     game.generate_tile()
-                    game.draw()
+                    if verbose:
+                        os.system(CLEAR)
+                        print(pred)
+                        print(ARROWS[i.item()])
+                        game.draw()
                     break
             else:
+                print(game.score)
                 print('Game Over')
                 break
 
@@ -130,7 +131,6 @@ def selfplay(name, model, game, number=10, device='cpu', verbose=False):
         game = Board(gen=True, draw=verbose, device=device)
     boards = []
     moves = []
-    counter = 0
     while True:
         if not len(moves) % 20:
             print('Move {}'.format(len(moves)))
@@ -150,6 +150,7 @@ def selfplay(name, model, game, number=10, device='cpu', verbose=False):
         else:
             boards.pop()
             break
+    print(game.score)
     print('Game Over')
     print('{} moves'.format(len(moves)))
     if isinstance(name, int):
