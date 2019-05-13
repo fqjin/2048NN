@@ -26,6 +26,8 @@ def mcts_nn(model, origin, number=10):
             games.extend([temp.copy() for _ in range(number)])
         else:
             result[i] = -1
+    if not len(games):
+        return result
     for g in games:
         g.generate_tile()
     notdead = games.copy()
