@@ -19,7 +19,7 @@ def mcts_nn(model, origin, number=10):
 
     """
     games = []
-    result = [0, 0, 0, 0]
+    result = np.zeros(4, dtype=np.float32)
     for i in range(4):
         temp = origin.copy()
         if temp.move(i):
@@ -58,10 +58,12 @@ def mcts_nn(model, origin, number=10):
                 break
 
     index = 0
-    scores = [g.score for g in games]
+    scores = np.asarray([g.score for g in games])
+    scores -= origin.score
+    scores = np.log10(scores + 1)  # log conversion shown to help
     for i in range(4):
         if not result[i]:
-            result[i] = sum(scores[index:index+number]) / number - origin.score
+            result[i] = np.mean(scores[index:index+number])
             index += number
     return result
 

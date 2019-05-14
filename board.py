@@ -16,7 +16,7 @@ DIMENSIONS = (SIZE, SIZE)  # (4,4)
 SIZE_SQRD = SIZE*SIZE  # 16
 
 # Print options
-np.set_printoptions(suppress=True)
+np.set_printoptions(precision=3, suppress=True)
 CLEAR = 'clear' if os.name == 'posix' else 'cls'
 ARROWS = {0: '        \u2b9c        .',
           1: '        \u2b9d        .',
