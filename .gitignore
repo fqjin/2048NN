@@ -3,12 +3,13 @@ __pycache__
 *.pyc
 
 # Jupyter
-.ipynb_checkpoints
+*.ipynb_checkpoints
 
 # Pycharm
-.idea
-.git
-.venv
+*.idea
+*.git
+*.venv
 
 # Project
-.npz
+*.npz
+
