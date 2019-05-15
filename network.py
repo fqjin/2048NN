@@ -67,8 +67,7 @@ class ConvNet(nn.Module):
     def forward(self, x):
         x = self.in_block(x)
         for block in self.blocks:
-            x1 = block(x)
-            x += x1
+            x = x + block(x)
             x = self.relu(x)
         x = self.out_block(x)
         x = x.view(-1, self.out_size)
