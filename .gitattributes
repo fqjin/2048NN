@@ -1,2 +1,2 @@
 # Override jupyter notebook
-*.ipynb linguist-detectable=true
+*.ipynb linguist-detectable=false
