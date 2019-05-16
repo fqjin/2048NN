@@ -18,8 +18,8 @@ class GameDataset(Dataset):
             self.moves.extend(game['moves'])
         self.boards = np.concatenate(self.boards)
         self.boards = torch.from_numpy(self.boards).float()
-        self.boards = self.boards.to(device)
         self.boards = self.boards.unsqueeze(1)
+        self.boards = self.boards.to(device)
         self.moves = torch.tensor(self.moves, device=device)
 
     def __len__(self):

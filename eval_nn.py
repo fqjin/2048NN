@@ -1,9 +1,10 @@
 import numpy as np
 import torch
+from time import time
 from board import Board
 
 
-def eval_nn(name, model, origin=None, number=1000):
+def eval_nn(name, model, origin=None, number=1000, device='cpu'):
     """Simulate games using a model
 
     Args:
@@ -13,13 +14,14 @@ def eval_nn(name, model, origin=None, number=1000):
             Defaults to None (generate new)
         number (int): # of lines
             Defaults to 1000
+        device: torch device if generating new games
 
     Returns:
         saves
 
     """
     if origin is None:
-        games = [Board() for _ in range(number)]
+        games = [Board(device=device) for _ in range(number)]
     else:
         origin = origin.copy()
         origin.score = 0
@@ -51,14 +53,27 @@ def eval_nn(name, model, origin=None, number=1000):
             if not len(notdead):
                 break
 
-    scores = np.asarray([g.score for g in games])
     scores = [g.score for g in games]
     np.savez('models/{}.npz'.format(name), scores=scores)
-    print('{} ave score: {}'.format(name, np.mean(scores)))
+    print('{} ave score: {} / {}'.format(name,
+                                         np.mean(scores),
+                                         np.mean(np.log10(scores+1))))
 
 
 if __name__ == '__main__':
-    from network import Fixed
-    m = Fixed()
-    eval_nn('fixed1', m)
-    eval_nn('fixed2', m)
+    name = '0_10_epox100_lr0.1_e0'
+    device = 'cpu'  # Still faster on cpu using this ConvNet
+    from board import play_fixed
+    a = Board()
+    play_fixed(a)
+    a.board -= 1
+    a.draw()
+
+    from network import ConvNet
+    m = ConvNet()
+    m.load_state_dict(torch.load('models/{}.pt'.format(name)))
+    m.to(device)
+    t = time()
+    eval_nn(name, m, origin=a, device=device)
+    t = time() - t
+    print('{0:.3f} seconds'.format(t))

@@ -19,6 +19,7 @@ def train_loop(model, data, loss_fn, optimizer):
         optimizer.step()
     running_loss /= len(data)
     print('Loss: {:.3f}'.format(running_loss))
+    print('Imp Acc: {:.3f}'.format(np.exp(-1*running_loss)))
     return running_loss
 
 
@@ -31,6 +32,7 @@ def main(start, end, epochs, lr, batch_size=256, momentum=0.9, decay=1e-4):
 
     m = ConvNet()
     m.to(device)
+    torch.save(m.state_dict(), 'models/'+logname+'_e0.pt')
     loss_fn = nn.NLLLoss()
     optimizer = torch.optim.SGD(m.parameters(),
                                 lr=lr,
@@ -39,11 +41,11 @@ def main(start, end, epochs, lr, batch_size=256, momentum=0.9, decay=1e-4):
                                 weight_decay=decay)
     loss = []
     for epoch in range(epochs):
-        if epoch % 99 == 0:
-            torch.save(m.state_dict(), 'models/'+logname+'.pt')
         print('-' * 10)
         print('Epoch: {}'.format(epoch))
         loss.append(train_loop(m, data, loss_fn, optimizer))
+        if epoch % 50 == 49:
+            torch.save(m.state_dict(), 'models/'+logname+'_e{}.pt'.format(epoch))
 
     params = {
         'start': start,
@@ -58,4 +60,4 @@ def main(start, end, epochs, lr, batch_size=256, momentum=0.9, decay=1e-4):
 
 
 if __name__ == '__main__':
-    main(0, 10, epochs=100, lr=1.0)
+    main(0, 10, epochs=100, lr=0.1)

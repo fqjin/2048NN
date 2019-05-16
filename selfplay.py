@@ -17,7 +17,9 @@ torch.manual_seed(s)
 
 a = Board(device='cpu', draw=True)
 
-m = Fixed()
-# m = ConvNet()
+# m = Fixed()
+name = '0_10_epox100_lr0.1_e0'
+m = ConvNet()
+m.load_state_dict(torch.load('models/{}.pt'.format(name)))
 
 selfplay(s, m, a, number=50, verbose=args.verbose)
