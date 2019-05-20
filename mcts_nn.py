@@ -28,8 +28,7 @@ def mcts_nn(model, origin, number=10):
             result[i] = -1
     if not games:
         return result
-    for g in games:
-        g.generate_tile()
+    Board.generate_tile_batch(games)
     notdead = games.copy()
 
     model.eval()
@@ -47,13 +46,8 @@ def mcts_nn(model, origin, number=10):
                 else:
                     moves = [g.pred[i] for g in subgames]
                 Board.move_batch(subgames, moves)
-            for g in notdead:
-                if g.moved:
-                    g.moved = 0
-                    g.generate_tile()
-                else:
-                    g.dead = 1
-            notdead = [g for g in notdead if not g.dead]
+            notdead = [g for g in notdead if g.moved]
+            Board.generate_tile_batch(notdead)
             if not notdead:
                 break
 

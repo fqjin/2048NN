@@ -41,11 +41,14 @@ class Board:
         score: int score, the sum of all combination values
 
     """
-    def __init__(self, device='cpu', gen=True, draw=False):
+    def __init__(self, device='cpu', gen=True, draw=False, board=None):
         self.device = device
-        self.board = torch.zeros(DIMENSIONS, dtype=torch.uint8, device=device)
+        if board is None:
+            self.board = torch.zeros(DIMENSIONS, dtype=torch.uint8, device=device)
+        else:
+            self.board = board.clone()
         self.score = 0
-        self.dead = 0
+        # self.dead = 0
         self.moved = 0
         if gen:
             self.generate_tile()
@@ -83,8 +86,8 @@ class Board:
 
     def copy(self):
         """Returns a copy as a new Board object"""
-        temp = Board(device=self.device, gen=False)
-        temp.board = self.board.clone()
+        temp = Board(device=self.device, gen=False, board=self.board)
+        # temp.board = self.board.clone()
         temp.score = self.score
         # Explicit saves time rather than calling restore
         return temp
@@ -172,58 +175,37 @@ class Board:
                 {} given'''.format(direction))
         return bool(moved_any)
 
-    # This implementation is 2.6 times slower
-    # Hard to find a way to efficiently do random batch indexing
     @staticmethod
-    def generate_tiles_batch(games):
+    def generate_tile_batch(games):
         """Generate tiles for a batch of games
+        Also resets moved attribute
 
         Args:
             games: a list of Board objects
 
         """
         len_games = len(games)
-        if len_games == 0:
+        if not len_games:
             return None
-        # TODO: it will be more efficient to use a BatchBoard object
         boards = torch.stack([g.board for g in games])
-        empty = (boards == 0).nonzero()
-        randidx = torch.randint(low=0, high=16, size=(len_games,))
-        randnum = torch.randint(low=0, high=10, size=(len_games,))
-        number = 0
-        count = 0
-        e_idx = 0
-        done = False
-        reset = 0
-        for idx, num in zip(randidx, randnum):
-            while True:
-                position = empty[e_idx]
-                if done:
-                    if position[0] != number:
-                        e_idx += 1
-                    else:
-                        reset = e_idx
-                        done = False
-                    continue
-                if position[0] != number:
-                    e_idx = reset
-                    continue
-                if count != idx:
-                    count += 1
-                    e_idx += 1
-                    if e_idx == len(empty):
-                        e_idx = reset
-                    continue
-                else:
-                    boards[number, position[1], position[2]] = \
-                        1 if num else 2
-                    done = True
-                    e_idx += 1
-                    number += 1
-                    count = 0
-                    break
-        for i, g in enumerate(games):
-            g.board = boards[i]
+        boards = boards.view(-1, SIZE_SQRD)
+        n_empty = torch.sum(boards == 0, dim=1, dtype=torch.uint8)
+        if 0 in n_empty:
+            raise ValueError('A board has no empty tile')
+        randidx = torch.randint(low=0, high=16, size=(len_games,),
+                                dtype=torch.uint8, device=boards.device)
+        randidx = torch.remainder(randidx, n_empty)
+        randnum = torch.randint(low=0, high=10, size=(len_games,),
+                                dtype=torch.uint8, device=boards.device)
+        randnum = 1 + (randnum == 0)
+        for i in range(SIZE_SQRD):
+            is_zero = boards[:, i] == 0
+            boards[:, i] += randnum * (randidx == 0) * is_zero
+            randidx -= is_zero  # wraps around to 255, so SIZE_SQRD should be <255
+        boards = boards.view(-1, SIZE, SIZE)
+        for g, b in zip(games, boards):
+            g.board = b
+            g.moved = 0
 
     @staticmethod
     def merge_row_batch(rows):
