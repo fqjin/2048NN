@@ -151,5 +151,5 @@ def selfplay(name, model, game, number=10, device='cpu', verbose=False):
     print('{} moves'.format(len(moves)))
     if isinstance(name, int):
         name = str(name).zfill(5)
-    np.savez('selfplay/'+name, boards=torch.stack(boards), moves=moves)
+    np.savez('selfplay/'+name, boards=torch.stack(boards), moves=moves, score=game.score)
     print('Saved as {}.npz'.format(name))

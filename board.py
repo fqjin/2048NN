@@ -178,7 +178,9 @@ class Board:
     @staticmethod
     def generate_tile_batch(games):
         """Generate tiles for a batch of games
-        Also resets moved attribute
+        Also resets moved attribute.
+
+        This method is faster for batch size >20
 
         Args:
             games: a list of Board objects
@@ -274,7 +276,7 @@ class Board:
                     {} given'''.format(move))
         rows = torch.cat(rows)
         newrows, scores, moved = Board.merge_row_batch(rows)
-        newrows = newrows.split(SIZE)
+        newrows = newrows.view(-1, SIZE, SIZE)
         scores = torch.sum(scores.view(-1, SIZE), dim=1)
         moved = torch.sum(moved.view(-1, SIZE), dim=1)
         for game, board, score, move, m in \
@@ -290,6 +292,35 @@ class Board:
                     game.board = board.flip(1)
                 else:
                     game.board = board.flip(1).t()
+
+        # This is slower
+        # for game, move in zip(games, moves):
+        #     if move == 1:
+        #         game.board = game.board.t()
+        #     elif move == 2:
+        #         game.board = game.board.flip(1)
+        #     elif move == 3:
+        #         game.board = game.board.t().flip(1)
+        # rows = torch.stack([g.board for g in games])
+        # rows = rows.view(-1, SIZE)
+        #
+        # newrows, scores, moved = Board.merge_row_batch(rows)
+        # newrows = newrows.view(-1, SIZE, SIZE)
+        # scores = torch.sum(scores.view(-1, SIZE), dim=1)
+        # moved = torch.sum(moved.view(-1, SIZE), dim=1)
+        # for game, board, score, move, m in \
+        #         zip(games, newrows, scores, moves, moved):
+        #     if m:
+        #         game.moved = 1
+        #         game.score += score.item()
+        #         if move == 0:
+        #             game.board = board
+        #     if move == 1:
+        #         game.board = board.t()
+        #     elif move == 2:
+        #         game.board = board.flip(1)
+        #     elif move == 3:
+        #         game.board = board.flip(1).t()
 
 
 def play_fixed(game=None, device='cpu'):

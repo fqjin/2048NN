@@ -1,10 +1,14 @@
 if __name__ == '__main__':
+    from board import *
     from mcts_nn import *
     from network import *
     from time import time
 
-    device = 'cuda'
-    a = Board(draw=True, device=device)
+    device = 'cpu'
+    a = Board(draw=False, device=device)
+    # play_fixed(a)
+    # a.board -= 1
+    a.draw()
     name = '0_10_epox100_lr0.1_e0'
     m = ConvNet()
     m.load_state_dict(torch.load('models/{}.pt'.format(name)))
