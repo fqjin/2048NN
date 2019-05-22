@@ -38,8 +38,9 @@ def mcts_nn(model, origin, number=10):
                 subgames = [g for g in notdead if not g.moved]
                 if i == 0:
                     boards = [g.board for g in subgames]
-                    preds = model.forward(torch.stack(boards).float().unsqueeze(1))
-                    preds = torch.argsort(preds, dim=1, descending=True)
+                    preds = model.forward(torch.stack(boards).float().unsqueeze(1).cuda())
+                    preds = torch.argsort(preds.cpu(), dim=1, descending=True)
+                    # TODO: Convert preds to List of ints
                     for g, p in zip(subgames, preds):
                         g.pred = p
                     moves = preds[:, i]
