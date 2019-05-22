@@ -24,6 +24,19 @@ ARROWS = {0: '        \u2b9c        .',
           2: '        \u2b9e        .',
           3: '        \u2b9f        .'}
 
+flipdict = {
+    0: lambda x: x,
+    1: torch.t,
+    2: lambda x: x.flip(1),
+    3: lambda x: x.t().flip(1)
+}
+unflipdict = {
+    0: lambda x: x,
+    1: torch.t,
+    2: lambda x: x.flip(1),
+    3: lambda x: x.flip(1).t()
+}
+
 
 class Board:
     """Board object stores 2048 board state
@@ -233,7 +246,7 @@ class Board:
         for i in range(SIZE - 1):
             temp = (newrows[i] == newrows[i+1]) * (newrows[i] != 0)
             newrows[i] += temp
-            scores += 2 ** newrows[i].int() * temp.int()
+            scores += temp.int() * (2 ** newrows[i].int())
             newrows[i+1] *= (1 - temp)
             for j in range(1, SIZE - 1 - i):
                 newrows[i+j] += newrows[i+j+1] * temp
@@ -261,19 +274,7 @@ class Board:
             return None
         if isinstance(moves, int):
             moves = [moves] * len(games)
-        rows = []
-        for game, move in zip(games, moves):
-            if move == 0:
-                rows.append(game.board)
-            elif move == 1:
-                rows.append(game.board.t())
-            elif move == 2:
-                rows.append(game.board.flip(1))
-            elif move == 3:
-                rows.append(game.board.t().flip(1))
-            else:
-                raise IndexError('''Only 0 to 3 accepted as directions, 
-                    {} given'''.format(move))
+        rows = [flipdict[move.item()](game.board) for game, move in zip(games, moves)]
         rows = torch.cat(rows)
         newrows, scores, moved = Board.merge_row_batch(rows)
         newrows = newrows.view(-1, SIZE, SIZE)
@@ -284,26 +285,13 @@ class Board:
             if m:
                 game.moved = 1
                 game.score += score.item()
-                if move == 0:
-                    game.board = board
-                elif move == 1:
-                    game.board = board.t()
-                elif move == 2:
-                    game.board = board.flip(1)
-                else:
-                    game.board = board.flip(1).t()
+                game.board = unflipdict[move.item()](board)
 
-        # This is slower
+        # This is slower??
         # for game, move in zip(games, moves):
-        #     if move == 1:
-        #         game.board = game.board.t()
-        #     elif move == 2:
-        #         game.board = game.board.flip(1)
-        #     elif move == 3:
-        #         game.board = game.board.t().flip(1)
-        # rows = torch.stack([g.board for g in games])
-        # rows = rows.view(-1, SIZE)
-        #
+        #     if move:
+        #         game.board = flipdict[move.item()](game.board)
+        # rows = torch.cat([g.board for g in games])
         # newrows, scores, moved = Board.merge_row_batch(rows)
         # newrows = newrows.view(-1, SIZE, SIZE)
         # scores = torch.sum(scores.view(-1, SIZE), dim=1)
@@ -313,14 +301,7 @@ class Board:
         #     if m:
         #         game.moved = 1
         #         game.score += score.item()
-        #         if move == 0:
-        #             game.board = board
-        #     if move == 1:
-        #         game.board = board.t()
-        #     elif move == 2:
-        #         game.board = board.flip(1)
-        #     elif move == 3:
-        #         game.board = board.flip(1).t()
+        #     game.board = unflipdict[move.item()](board)
 
 
 def play_fixed(game=None, device='cpu'):
