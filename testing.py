@@ -10,7 +10,7 @@ if __name__ == '__main__':
     # play_fixed(a)
     # a.board -= 1
     a.draw()
-    name = '0_10_epox100_lr0.1_e0'
+    name = '0_10_epox100_lr0.1_e99'
     # m = Fixed()
     m = ConvNet()
     m.load_state_dict(torch.load('models/{}.pt'.format(name)))

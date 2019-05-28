@@ -13,8 +13,7 @@ This project seeks to implement an algorithm which uses:
 
 #### Dependencies:
 - numpy
-- tensorflow (as backend)
-- keras
+- pytorch
 - curses (for manual play)
 
 #### Module documentation:
