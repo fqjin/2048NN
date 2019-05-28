@@ -129,6 +129,7 @@ def selfplay(name, model, game, number=10, device='cpu', verbose=False):
     boards = []
     moves = []
     while True:
+        print('Seed {}'.format(name))
         if not len(moves) % 20:
             print('Move {}'.format(len(moves)))
         boards.append(game.board.clone())
