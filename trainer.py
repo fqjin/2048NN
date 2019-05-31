@@ -18,17 +18,34 @@ def train_loop(model, data, loss_fn, optimizer):
         loss.backward()
         optimizer.step()
     running_loss /= len(data)
-    print('Loss: {:.3f}'.format(running_loss))
+    print('Train Loss: {:.3f}'.format(running_loss))
     print('Imp Acc: {:.3f}'.format(np.exp(-1*running_loss)))
     return running_loss
 
 
-def main(start, end, epochs, lr, batch_size=256, momentum=0.9, decay=1e-4):
+def valid_loop(model, data, loss_fn):
+    model.eval()
+    running_loss = 0
+    with torch.no_grad():
+        for x, y in tqdm(data):
+            pred = model(x)
+            loss = loss_fn(pred, y)
+            running_loss += loss.data.item()
+    running_loss /= len(data)
+    print('Valid Loss: {:.3f}'.format(running_loss))
+    print('Imp Acc: {:.3f}'.format(np.exp(-1*running_loss)))
+    return running_loss
+
+
+def main(t_tuple, v_tuple, epochs, lr, batch_size=256, momentum=0.9, decay=1e-4):
+    start, end = t_tuple
     logname = '{}_{}_epox{}_lr{}'.format(start, end, epochs, lr)
 
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-    dataset = GameDataset('selfplay/', start, end, device, augment=False)
-    data = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+    train_set = GameDataset('selfplay/', start, end, device, augment=False)
+    valid_set = GameDataset('selfplay/', v_tuple[0], v_tuple[1], device, augment=False)
+    train_dat = DataLoader(train_set, batch_size=batch_size, shuffle=True)
+    valid_dat = DataLoader(valid_set, batch_size=batch_size, shuffle=False)
 
     m = ConvNet()
     m.to(device)
@@ -39,25 +56,28 @@ def main(start, end, epochs, lr, batch_size=256, momentum=0.9, decay=1e-4):
                                 momentum=momentum,
                                 nesterov=True,
                                 weight_decay=decay)
-    loss = []
+    t_loss = []
+    v_loss = []
     for epoch in range(epochs):
         print('-' * 10)
         print('Epoch: {}'.format(epoch))
-        loss.append(train_loop(m, data, loss_fn, optimizer))
+        t_loss.append(train_loop(m, train_dat, loss_fn, optimizer))
+        v_loss.append(valid_loop(m, valid_dat, loss_fn))
         if epoch % 50 == 49:
             torch.save(m.state_dict(), 'models/'+logname+'_e{}.pt'.format(epoch))
 
     params = {
-        'start': start,
-        'end': end,
+        't_tuple': t_tuple,
+        'v_tuple': v_tuple,
         'epochs': epochs,
         'lr': lr,
         'batch_size': batch_size,
         'decay': decay,
         'momentum': momentum,
     }
-    np.savez('logs/'+logname, loss=loss, params=params)
+    np.savez('logs/'+logname, t_loss=t_loss, v_loss=v_loss, params=params)
 
 
 if __name__ == '__main__':
-    main(0, 10, epochs=100, lr=0.1)
+    main(t_tuple=(10, 20), v_tuple=(0, 10), epochs=100, lr=0.1)
+    # main(t_tuple=(0, 10), v_tuple=(10, 20), epochs=100, lr=0.1)
