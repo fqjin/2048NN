@@ -35,25 +35,20 @@ def eval_nn(name, model, origin=None, number=1000, device='cpu'):
                 subgames = [g for g in notdead if not g.moved]
                 if i == 0:
                     boards = [g.board for g in subgames]
-                    preds = model.forward(torch.stack(boards).float().unsqueeze(1))
-                    preds = torch.argsort(preds, dim=1, descending=True)
+                    preds = model.forward(torch.stack(boards).float().unsqueeze(1).cuda())
+                    preds = torch.argsort(preds.cpu(), dim=1, descending=True)
                     for g, p in zip(subgames, preds):
                         g.pred = p
                     moves = preds[:, i]
                 else:
                     moves = [g.pred[i] for g in subgames]
                 Board.move_batch(subgames, moves)
-            for g in notdead:
-                if g.moved:
-                    g.moved = 0
-                    g.generate_tile()
-                else:
-                    g.dead = 1
-            notdead = [g for g in notdead if not g.dead]
-            if not len(notdead):
+            notdead = [g for g in notdead if g.moved]
+            Board.generate_tile_batch(notdead)
+            if not notdead:
                 break
 
-    scores = [g.score for g in games]
+    scores = np.asarray([g.score for g in games])
     np.savez('models/{}.npz'.format(name), scores=scores)
     print('{} ave score: {} / {}'.format(name,
                                          np.mean(scores),
@@ -61,8 +56,7 @@ def eval_nn(name, model, origin=None, number=1000, device='cpu'):
 
 
 if __name__ == '__main__':
-    name = '0_10_epox100_lr0.1_e0'
-    device = 'cpu'  # Still faster on cpu using this ConvNet
+    name = '10_20_epox100_lr0.01pre_e99'
     from board import play_fixed
     a = Board()
     play_fixed(a)
@@ -72,8 +66,8 @@ if __name__ == '__main__':
     from network import ConvNet
     m = ConvNet()
     m.load_state_dict(torch.load('models/{}.pt'.format(name)))
-    m.to(device)
+    m.to('cuda')
     t = time()
-    eval_nn(name, m, origin=a, device=device)
+    eval_nn(name, m, origin=a)
     t = time() - t
     print('{0:.3f} seconds'.format(t))

@@ -80,3 +80,4 @@ if __name__ == '__main__':
     m = ConvNet()
     params = sum(p.numel() for p in m.parameters())
     print(params)
+    # 28540

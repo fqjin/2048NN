@@ -27,7 +27,7 @@ def valid_loop(model, data, loss_fn):
     model.eval()
     running_loss = 0
     with torch.no_grad():
-        for x, y in tqdm(data):
+        for x, y in data:
             pred = model(x)
             loss = loss_fn(pred, y)
             running_loss += loss.data.item()
@@ -37,7 +37,7 @@ def valid_loop(model, data, loss_fn):
     return running_loss
 
 
-def main(t_tuple, v_tuple, epochs, lr, batch_size=256, momentum=0.9, decay=1e-4):
+def main(t_tuple, v_tuple, epochs, lr, batch_size=256, momentum=0.9, decay=1e-4, save_period=50, pretrained=None):
     start, end = t_tuple
     logname = '{}_{}_epox{}_lr{}'.format(start, end, epochs, lr)
 
@@ -48,6 +48,10 @@ def main(t_tuple, v_tuple, epochs, lr, batch_size=256, momentum=0.9, decay=1e-4)
     valid_dat = DataLoader(valid_set, batch_size=batch_size, shuffle=False)
 
     m = ConvNet()
+    if pretrained is not None:
+        m.load_state_dict(torch.load('models/{}.pt'.format(pretrained)))
+        print('Loaded ' + pretrained)
+        logname += 'pre'
     m.to(device)
     torch.save(m.state_dict(), 'models/'+logname+'_e0.pt')
     loss_fn = nn.NLLLoss()
@@ -63,7 +67,7 @@ def main(t_tuple, v_tuple, epochs, lr, batch_size=256, momentum=0.9, decay=1e-4)
         print('Epoch: {}'.format(epoch))
         t_loss.append(train_loop(m, train_dat, loss_fn, optimizer))
         v_loss.append(valid_loop(m, valid_dat, loss_fn))
-        if epoch % 50 == 49:
+        if epoch % save_period == save_period-1:
             torch.save(m.state_dict(), 'models/'+logname+'_e{}.pt'.format(epoch))
 
     params = {
@@ -74,10 +78,14 @@ def main(t_tuple, v_tuple, epochs, lr, batch_size=256, momentum=0.9, decay=1e-4)
         'batch_size': batch_size,
         'decay': decay,
         'momentum': momentum,
+        'pretrained': pretrained
     }
     np.savez('logs/'+logname, t_loss=t_loss, v_loss=v_loss, params=params)
 
 
 if __name__ == '__main__':
-    main(t_tuple=(10, 20), v_tuple=(0, 10), epochs=100, lr=0.1)
+    # main(t_tuple=(10, 20), v_tuple=(0, 10), epochs=100, lr=0.01, pretrained='0_10_epox100_lr0.1_e99')
+    # main(t_tuple=(10, 20), v_tuple=(0, 10), epochs=100, lr=0.1)
     # main(t_tuple=(0, 10), v_tuple=(10, 20), epochs=100, lr=0.1)
+    # main(t_tuple=(0, 20), v_tuple=(0, 1), epochs=100, lr=0.1)
+    pass
