@@ -10,7 +10,7 @@ def selfplay_fixed(name, game, number=50, verbose=False):
     boards and move choices of the main line for training.
 
     Args:
-        name (int): name for data
+        name (str): name for data
         game (Board): the starting game state. If `None`
             is passed, a new Board is generated.
         number (int): # of lines to try for each move.
@@ -50,8 +50,6 @@ def selfplay_fixed(name, game, number=50, verbose=False):
     print(game.score)
     print('Game Over')
     print('{} moves'.format(len(moves)))
-    if isinstance(name, int):
-        name = str(name).zfill(5)
     np.savez('selfplay/'+name, boards=torch.stack(boards), moves=moves, score=game.score,
              method=0)  # method 0 is fixed
     print('Saved as {}.npz'.format(name))
@@ -69,15 +67,15 @@ if __name__ == '__main__':
     random.seed(s)
     np.random.seed(s)
     torch.manual_seed(s)
+    name = str(s).zfill(5)
 
     a = Board(device='cpu', draw=True)
-
-    # name = '0_10_epox100_lr0.1_e99'
-    name = 'fixed'
-    print('Using model: {}'.format(name))
+    # m_name = '0_10_epox100_lr0.1_e99'
+    m_name = 'fixed'
+    print('Using model: {}'.format(m_name))
     # m = ConvNet()
-    # m.load_state_dict(torch.load('models/{}.pt'.format(name)))
+    # m.load_state_dict(torch.load('models/{}.pt'.format(m_name)))
     # m.to('cuda')
 
-    # selfplay(s, m, a, number=50, verbose=args.verbose)
-    selfplay_fixed(s, a, number=50, verbose=args.verbose)
+    # selfplay(name, m, a, number=50, verbose=args.verbose)
+    selfplay_fixed(name, a, number=50, verbose=args.verbose)

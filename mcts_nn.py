@@ -110,7 +110,7 @@ def selfplay(name, model, game, number=10, device='cpu', verbose=False):
     boards and move choices of the main line for training.
 
     Args:
-        name (int): name for data
+        name (str): name for data
         game (Board): the starting game state. If `None`
             is passed, a new Board is generated.
         model: keras model to predict moves
@@ -152,7 +152,5 @@ def selfplay(name, model, game, number=10, device='cpu', verbose=False):
     print(game.score)
     print('Game Over')
     print('{} moves'.format(len(moves)))
-    if isinstance(name, int):
-        name = str(name).zfill(5)
     np.savez('selfplay/'+name, boards=torch.stack(boards), moves=moves, score=game.score)
     print('Saved as {}.npz'.format(name))

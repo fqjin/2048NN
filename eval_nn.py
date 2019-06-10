@@ -50,24 +50,26 @@ def eval_nn(name, model, origin=None, number=1000, device='cpu'):
 
     scores = np.asarray([g.score for g in games])
     np.savez('models/{}.npz'.format(name), scores=scores)
-    print('{} ave score: {} / {}'.format(name,
-                                         np.mean(scores),
-                                         np.mean(np.log10(scores+1))))
+    print(name)
+    print('Ave score: {} / {}'.format(np.mean(scores),
+                                      np.mean(np.log10(scores+1))))
 
 
 if __name__ == '__main__':
-    name = '10_20_epox100_lr0.01pre_e99'
     from board import play_fixed
     a = Board()
     play_fixed(a)
     a.board -= 1
-    a.draw()
 
-    from network import ConvNet
-    m = ConvNet()
-    m.load_state_dict(torch.load('models/{}.pt'.format(name)))
-    m.to('cuda')
-    t = time()
-    eval_nn(name, m, origin=a)
-    t = time() - t
-    print('{0:.3f} seconds'.format(t))
+    for i in [9, 19, 29, 39]:
+        name = '20190610/5_30_epox60_lr0.1_e{}'.format(i)
+        a.draw()
+
+        from network import ConvNet
+        m = ConvNet()
+        m.load_state_dict(torch.load('models/{}.pt'.format(name)))
+        m.to('cuda')
+        t = time()
+        eval_nn(name, m, origin=a)
+        t = time() - t
+        print('{0:.3f} seconds'.format(t))
