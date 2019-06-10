@@ -35,6 +35,7 @@ def mcts_nn(model, origin, number=10):
     with torch.no_grad():
         while True:
             for i in range(4):
+                # TODO: !!! g for g in subgames when i != 0
                 subgames = [g for g in notdead if not g.moved]
                 if i == 0:
                     boards = [g.board for g in subgames]

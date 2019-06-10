@@ -274,6 +274,7 @@ class Board:
             return None
         if isinstance(moves, int):
             moves = [moves] * len(games)
+            moves = torch.ByteTensor(moves)
         rows = [flipdict[move.item()](game.board) for game, move in zip(games, moves)]
         rows = torch.cat(rows)
         newrows, scores, moved = Board.merge_row_batch(rows)

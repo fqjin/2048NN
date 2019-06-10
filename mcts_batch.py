@@ -22,38 +22,34 @@ def mcts_fixed_batch(origin, number=10, move_order=(0, 1, 2, 3)):
 
     """
     games = []
-    result = [1, 1, 1, 1]
+    result = np.zeros(4, dtype=np.float32)
     for i in range(4):
         temp = origin.copy()
         if temp.move(i):
             games.extend([temp.copy() for _ in range(number)])
         else:
-            result[i] = 0
-    for g in games:
-        g.generate_tile()
-        # g.moved = 0 not needed because temp.move(i) doesn't change moved
+            result[i] = -1
+    if not games:
+        return result
+    Board.generate_tile_batch(games)
+    notdead = games.copy()
 
     while True:
-        for i in move_order:
-            subgames = [
-                g for g in games if not g.dead and not g.moved
-            ]
-            Board.move_batch(subgames, i)
-        for g in games:
-            if g.moved:
-                g.moved = 0
-                g.generate_tile()
-            else:
-                g.dead = 1
-        if 0 not in [g.dead for g in games]:
+        for i in range(4):
+            subgames = [g for g in notdead if not g.moved]
+            Board.move_batch(subgames, move_order[i])
+        notdead = [g for g in notdead if g.moved]
+        Board.generate_tile_batch(notdead)
+        if not notdead:
             break
 
     index = 0
-    scores = [g.score for g in games]
+    scores = np.asarray([g.score for g in games])
+    scores -= origin.score
+    scores = np.log10(scores + 1)  # log conversion shown to help
     for i in range(4):
-        if result[i]:
-            result[i] = sum(scores[index:index+number]) / number - origin.score
-            # TODO: Consider using mean of log score
+        if not result[i]:
+            result[i] = np.mean(scores[index:index+number])
             index += number
     return result
 
