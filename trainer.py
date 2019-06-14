@@ -87,5 +87,5 @@ if __name__ == '__main__':
     # main(t_tuple=(10, 20), v_tuple=(0, 10), epochs=100, lr=0.01, pretrained='0_10_epox100_lr0.1_e99')
     # main(t_tuple=(10, 20), v_tuple=(0, 10), epochs=100, lr=0.1)
     # main(t_tuple=(0, 10), v_tuple=(10, 20), epochs=100, lr=0.1)
-    main(t_tuple=(5, 20), v_tuple=(0, 5), epochs=100, lr=0.1)
+    main(t_tuple=(10, 60), v_tuple=(0, 10), lr=0.1, epochs=60, save_period=10)
     pass

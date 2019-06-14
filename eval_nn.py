@@ -57,15 +57,15 @@ def eval_nn(name, model, origin=None, number=1000, device='cpu'):
 
 if __name__ == '__main__':
     from board import play_fixed
+    from network import ConvNet
     a = Board()
     play_fixed(a)
     a.board -= 1
+    a.draw()
 
-    for i in [9, 19, 29, 39]:
-        name = '20190610/5_30_epox60_lr0.1_e{}'.format(i)
-        a.draw()
+    for i in [29, 39, 49, 59]:
+        name = '20190614/10_60_epox60_lr0.1_e{}'.format(i)
 
-        from network import ConvNet
         m = ConvNet()
         m.load_state_dict(torch.load('models/{}.pt'.format(name)))
         m.to('cuda')

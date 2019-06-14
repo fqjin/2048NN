@@ -89,7 +89,7 @@ def play_nn(model, game, press_enter=False, device='cpu', verbose=False):
         while True:
             if press_enter and input() == 'q':
                 break
-            pred = model.forward(game.board.float()[None, None, ...])[0]
+            pred = model.forward(game.board.float().cuda()[None, None, ...])[0]
             for i in torch.argsort(pred, descending=True):
                 if game.move(i):
                     game.generate_tile()
