@@ -49,11 +49,11 @@ def eval_nn(name, model, origin=None, number=1000, device='cpu'):
                 break
 
     scores = np.asarray([g.score for g in games])
+    logscores = np.log10(scores+1)
     np.savez('models/{}.npz'.format(name), scores=scores)
     print(name)
-    print('Ave score: {} / {}'.format(np.mean(scores),
-                                      np.mean(np.log10(scores+1))))
-
+    print('Score: {0:.0f} / {1:.0f}'.format(np.mean(scores), np.std(scores)/np.sqrt(number)))
+    print('Log Score: {0:.3f} / {1:.3f}'.format(np.mean(logscores), np.std(logscores)/np.sqrt(number)))
 
 if __name__ == '__main__':
     from board import play_fixed
@@ -63,8 +63,8 @@ if __name__ == '__main__':
     a.board -= 1
     a.draw()
 
-    for i in [29, 39, 49, 59]:
-        name = '20190625/10_60_epox60_lr0.125_e{}'.format(i)
+    for i in [0, 9, 19]:  # 29, 39, 49, 59]:
+        name = '20190627/60_70_epox20_lr0.125pre_e{}'.format(i)
 
         m = ConvNet(channels=32, num_blocks=4)
         m.load_state_dict(torch.load('models/{}.pt'.format(name)))
@@ -73,3 +73,4 @@ if __name__ == '__main__':
         eval_nn(name, m, origin=a)
         t = time() - t
         print('{0:.3f} seconds'.format(t))
+        print('-'*10)
