@@ -64,9 +64,9 @@ if __name__ == '__main__':
     a.draw()
 
     for i in [29, 39, 49, 59]:
-        name = '20190614/10_60_epox60_lr0.1_e{}'.format(i)
+        name = '20190625/10_60_epox60_lr0.125_e{}'.format(i)
 
-        m = ConvNet()
+        m = ConvNet(channels=32, num_blocks=4)
         m.load_state_dict(torch.load('models/{}.pt'.format(name)))
         m.to('cuda')
         t = time()

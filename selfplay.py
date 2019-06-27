@@ -1,8 +1,8 @@
 from argparse import ArgumentParser
 from board import *
 from mcts_batch import *
-# from mcts_nn import *
-# from network import *
+from mcts_nn import *
+from network import ConvNet
 
 
 def selfplay_fixed(name, game, number=50, verbose=False):
@@ -70,12 +70,12 @@ if __name__ == '__main__':
     name = str(s).zfill(5)
 
     a = Board(device='cpu', draw=True)
-    # m_name = '0_10_epox100_lr0.1_e99'
-    m_name = 'fixed'
+    m_name = '20190625/10_60_epox60_lr0.125_e49'
+    # m_name = 'fixed'
     print('Using model: {}'.format(m_name))
-    # m = ConvNet()
-    # m.load_state_dict(torch.load('models/{}.pt'.format(m_name)))
-    # m.to('cuda')
+    m = ConvNet(channels=32, num_blocks=4)
+    m.load_state_dict(torch.load('models/{}.pt'.format(m_name)))
+    m.to('cuda')
 
-    # selfplay(name, m, a, number=50, verbose=args.verbose)
-    selfplay_fixed(name, a, number=50, verbose=args.verbose)
+    selfplay(name, m, a, number=50, verbose=args.verbose)
+    # selfplay_fixed(name, a, number=50, verbose=args.verbose)

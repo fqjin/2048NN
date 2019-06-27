@@ -47,7 +47,7 @@ def main(t_tuple, v_tuple, epochs, lr, batch_size=256, momentum=0.9, decay=1e-4,
     train_dat = DataLoader(train_set, batch_size=batch_size, shuffle=True)
     valid_dat = DataLoader(valid_set, batch_size=batch_size, shuffle=False)
 
-    m = ConvNet()
+    m = ConvNet(channels=32, num_blocks=4)
     if pretrained is not None:
         m.load_state_dict(torch.load('models/{}.pt'.format(pretrained)))
         print('Loaded ' + pretrained)
@@ -84,8 +84,5 @@ def main(t_tuple, v_tuple, epochs, lr, batch_size=256, momentum=0.9, decay=1e-4,
 
 
 if __name__ == '__main__':
-    # main(t_tuple=(10, 20), v_tuple=(0, 10), epochs=100, lr=0.01, pretrained='0_10_epox100_lr0.1_e99')
-    # main(t_tuple=(10, 20), v_tuple=(0, 10), epochs=100, lr=0.1)
-    # main(t_tuple=(0, 10), v_tuple=(10, 20), epochs=100, lr=0.1)
-    main(t_tuple=(10, 60), v_tuple=(0, 10), lr=0.1, epochs=60, save_period=10)
+    main(t_tuple=(10, 60), v_tuple=(0, 10), lr=0.125, epochs=60, save_period=10, batch_size=512, decay=0.0012)
     pass
