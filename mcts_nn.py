@@ -149,8 +149,8 @@ def selfplay(name, model, game, number=10, device='cpu', verbose=False):
         else:
             boards.pop()
             break
-    print(game.score)
     print('Game Over')
+    game.draw()
     print('{} moves'.format(len(moves)))
     np.savez('selfplay/'+name, boards=torch.stack(boards), moves=moves, score=game.score)
     print('Saved as {}.npz'.format(name))

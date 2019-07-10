@@ -55,6 +55,7 @@ def eval_nn(name, model, origin=None, number=1000, device='cpu'):
     print('Score: {0:.0f} / {1:.0f}'.format(np.mean(scores), np.std(scores)/np.sqrt(number)))
     print('Log Score: {0:.3f} / {1:.3f}'.format(np.mean(logscores), np.std(logscores)/np.sqrt(number)))
 
+
 if __name__ == '__main__':
     from board import play_fixed
     from network import ConvNet
@@ -63,8 +64,8 @@ if __name__ == '__main__':
     a.board -= 1
     a.draw()
 
-    for i in [0, 9, 19]:  # 29, 39, 49, 59]:
-        name = '20190627/60_70_epox20_lr0.125pre_e{}'.format(i)
+    for i in [0, 9]:  # 29, 39, 49, 59]:
+        name = '20190701/60_80_epox10_lr0.0043pre_e{}'.format(i)
 
         m = ConvNet(channels=32, num_blocks=4)
         m.load_state_dict(torch.load('models/{}.pt'.format(name)))

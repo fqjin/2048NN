@@ -70,7 +70,7 @@ if __name__ == '__main__':
     name = str(s).zfill(5)
 
     a = Board(device='cpu', draw=True)
-    m_name = '20190625/10_60_epox60_lr0.125_e49'
+    m_name = '20190701/60_80_epox10_lr0.0043pre_e9'
     # m_name = 'fixed'
     print('Using model: {}'.format(m_name))
     m = ConvNet(channels=32, num_blocks=4)
