@@ -15,7 +15,7 @@ start_board = Board()
 play_fixed(start_board)
 start_board.board -= 1
 
-t_tuple = (60, 80)
+t_tuple = (80, 100)
 # validation not used
 batch_size = 512
 momentum = 0.9
@@ -47,7 +47,7 @@ def train(params):
     epochs = params['epochs']
 
     m = ConvNet(channels=32, num_blocks=4)
-    m.load_state_dict(torch.load('../models/20190625/10_60_epox60_lr0.125_e49.pt'))
+    m.load_state_dict(torch.load('../models/20190701/60_80_epox10_lr0.0043pre_e9.pt'))
     m.to(device)
     loss_fn = nn.NLLLoss()
     optimizer = torch.optim.SGD(m.parameters(),
@@ -104,7 +104,7 @@ def eval_fn(params):
 
 if __name__ == '__main__':
     parameters = {
-        'lr': 0.125,
+        'lr': 0.0043,
         'decay': 0.0012,
         'epochs': 5,
     }

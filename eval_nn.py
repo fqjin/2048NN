@@ -65,7 +65,7 @@ if __name__ == '__main__':
     a.draw()
 
     for i in [0, 9]:  # 29, 39, 49, 59]:
-        name = '20190701/60_80_epox10_lr0.0043pre_e{}'.format(i)
+        name = '20190710/80_100_epox10_lr0.0043pre_e{}'.format(i)
 
         m = ConvNet(channels=32, num_blocks=4)
         m.load_state_dict(torch.load('models/{}.pt'.format(name)))
