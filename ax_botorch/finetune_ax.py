@@ -2,20 +2,19 @@ import os
 import sys
 import numpy as np
 import torch
+from time import time
 from torch import nn
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 sys.path.append('../')
-from board import Board, play_fixed
+from board import Board
 from game_dataset import GameDataset
 from network import ConvNet
 
 start_board = Board()
-play_fixed(start_board)
-start_board.board -= 1
 
-t_tuple = (80, 100)
+t_tuple = (100, 120)
 # validation not used
 batch_size = 512
 momentum = 0.9
@@ -46,8 +45,9 @@ def train(params):
     decay = params['decay']
     epochs = params['epochs']
 
+    name = '20190710/80_100_epox10_lr0.0043pre_e9'
     m = ConvNet(channels=32, num_blocks=4)
-    m.load_state_dict(torch.load('../models/20190701/60_80_epox10_lr0.0043pre_e9.pt'))
+    m.load_state_dict(torch.load('../models/{}.pt'.format(name)))
     m.to(device)
     loss_fn = nn.NLLLoss()
     optimizer = torch.optim.SGD(m.parameters(),
@@ -95,10 +95,12 @@ def eval_nn(model):
 
 def eval_fn(params):
     model = train(params)
+    t = time()
     logscores = eval_nn(model)
+    t = time() - t
     mu = np.mean(logscores)
     sig = np.std(logscores)/np.sqrt(1000)
-    print('{0:.3f} / {1:.3f}'.format(mu, sig))
+    print('{0:.3f} / {1:.3f} / {2:.0f} sec'.format(mu, sig, t))
     return {'log_eval': (mu, sig)}
 
 
@@ -106,6 +108,6 @@ if __name__ == '__main__':
     parameters = {
         'lr': 0.0043,
         'decay': 0.0012,
-        'epochs': 5,
+        'epochs': 10,
     }
     print(eval_fn(parameters))

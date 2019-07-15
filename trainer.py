@@ -85,5 +85,5 @@ def main(t_tuple, v_tuple, epochs, lr, batch_size=256, momentum=0.9, decay=1e-4,
 
 if __name__ == '__main__':
     # main(t_tuple=(10, 60), v_tuple=(0, 10), lr=0.125, epochs=60, save_period=10, batch_size=512, decay=0.0012)
-    main(t_tuple=(80, 100), v_tuple=(60, 80), lr=0.0043, epochs=10, save_period=10,
-         batch_size=512, decay=0.0012, pretrained='20190701/60_80_epox10_lr0.0043pre_e9')
+    main(t_tuple=(100, 120), v_tuple=(80, 100), lr=0.0034, epochs=5, save_period=5,
+         batch_size=512, decay=0.024, pretrained='20190710/80_100_epox10_lr0.0043pre_e9')

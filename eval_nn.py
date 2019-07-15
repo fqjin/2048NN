@@ -60,9 +60,8 @@ if __name__ == '__main__':
     from network import ConvNet
     a = Board(draw=True)
 
-    for i in [0, 9]:  # 29, 39, 49, 59]:
-        name = '20190710/80_100_epox10_lr0.0043pre_e{}'.format(i)
-
+    for i in [0, 4]:
+        name = '20190715/100_120_epox5_lr0.0034pre_e{}'.format(i)
         m = ConvNet(channels=32, num_blocks=4)
         m.load_state_dict(torch.load('models/{}.pt'.format(name)))
         m.to('cuda')
