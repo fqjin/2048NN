@@ -4,8 +4,11 @@ from board import SIZE, SIZE_SQRD
 
 
 class Fixed:
-    def __init__(self):
-        self.out = torch.tensor([3.0, 2.0, 1.0, 0.0])
+    def __init__(self, order=[3.0, 2.0, 1.0, 0.0]):
+        """
+        :param order: Argmax move order
+        """
+        self.out = torch.tensor(order)
 
     def eval(self):
         pass

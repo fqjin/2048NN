@@ -11,9 +11,9 @@ The neural network is trained through self-play reinforcement learning.
 * First 8192 tile achieved (game 100) using model `20190710/80_100_epox10_lr0.0043pre_e9`
 
 
-* No games below 512 tile: fixed move order
-* No games below 1024 tile: model `20190701/60_80_epox10_lr0.0043pre_e9`
-* No games below 2048 tile (goal): model `to be determined`
+* No selfplay games below 512 tile: fixed move order
+* No selfplay games below 1024 tile: model `20190701/60_80_epox10_lr0.0043pre_e9`
+* No selfplay games below 2048 tile: model `20190710/80_100_epox10_lr0.0043pre_e9`
 
 
 ### Findings:
@@ -22,7 +22,8 @@ The neural network is trained through self-play reinforcement learning.
 * Models tend to play better during the 'late game' (higher score boards).
 Possibly due to training data distribution.
 * Strong trained models prefer the move order (Left, Up, Down, Right).
-This makes sense in retrospect.
+This fixed order is indeed slightly stronger than the initially proposed order.
+It makes sense in retrospect.
 
 
 ### Monte Carlo playout process:
@@ -42,27 +43,3 @@ The stronger moves from playout process are then used to train the neural networ
 - torch [pytorch]
 - ax [ax-platform] (for optimization)
 - curses [ncurses / windows-curses] (for manual play)
-
-
-#### Module documentation (needs updating):
-board.py:
-- Board (class): tile values and positions in an array, game score, logic for generating new tiles, logic for executing moves in all 4 directions.
-- play_fixed: autoplay with a fixed move order (L,U,R,D)
-
-manual.py:
-- play_manual: play manually using the arrow keys
-
-mcts.py:
-- mcts_fixed: performs the monte-carlo tree search documented below, using a fixed move order
-- play_mcts_fixed: autoplay using first-order MCTS results with a fixed move order method for generating lines
-
-mcts_batch.py
-- mcts_fixed_batch: performs tree search using a batch process
-
-mcts_nn.py:
-- simple_model: creates a new keras neural network, simple & fully-connected
-- get_model: loads a previously-saved neural network
-- play_nn: autoplay using a neural network to select moves (without using monte-carlo search)
-- mcts_nn: performs monte-carlo search using the neural network to generate lines. Uses batch process for efficiency.
-- make_data: play a game using mcts_nn, returns every board in main line and the final mcts move scores
-- train: train a neural network using a set of boards and MCTS search results

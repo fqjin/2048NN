@@ -57,12 +57,8 @@ def eval_nn(name, model, origin=None, number=1000, device='cpu'):
 
 
 if __name__ == '__main__':
-    from board import play_fixed
     from network import ConvNet
-    a = Board()
-    play_fixed(a)
-    a.board -= 1
-    a.draw()
+    a = Board(draw=True)
 
     for i in [0, 9]:  # 29, 39, 49, 59]:
         name = '20190710/80_100_epox10_lr0.0043pre_e{}'.format(i)
