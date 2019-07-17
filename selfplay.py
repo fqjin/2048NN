@@ -70,12 +70,10 @@ if __name__ == '__main__':
     name = str(s).zfill(5)
 
     a = Board(device='cpu', draw=True)
-    m_name = '20190710/80_100_epox10_lr0.0043pre_e9'
-    # m_name = 'fixed'
+    m_name = '20190715/100_120_epox5_lr0.0034pre_e4'
     print('Using model: {}'.format(m_name))
     m = ConvNet(channels=32, num_blocks=4)
     m.load_state_dict(torch.load('models/{}.pt'.format(m_name)))
     m.to('cuda')
 
     selfplay(name, m, a, number=50, verbose=args.verbose)
-    # selfplay_fixed(name, a, number=50, verbose=args.verbose)

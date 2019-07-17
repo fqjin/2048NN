@@ -9,10 +9,6 @@ The neural network is trained through self-play reinforcement learning.
 * First 2048 tile achieved (game 0) using fixed move order 
 * First 4096 tile achieved (game 79) using model `20190625/10_60_epox60_lr0.125_e49`
 * First 8192 tile achieved (game 100) using model `20190710/80_100_epox10_lr0.0043pre_e9`
-<br><br>
-* No selfplay games below 512 tile: fixed move order
-* No selfplay games below 1024 tile: model `20190701/60_80_epox10_lr0.0043pre_e9`
-* No selfplay games below 2048 tile: model `20190710/80_100_epox10_lr0.0043pre_e9`
 
 
 ### Findings:
