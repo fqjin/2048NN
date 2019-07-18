@@ -1,7 +1,7 @@
 from argparse import ArgumentParser
-from board import *
-from mcts_batch import *
-from mcts_nn import *
+from board import *  # os, np, torch, board, CONSTANTS
+from mcts_batch import mcts_fixed_batch
+from mcts_nn import mcts_nn
 from network import ConvNet
 
 
@@ -52,6 +52,57 @@ def selfplay_fixed(name, game, number=50, verbose=False):
     print('{} moves'.format(len(moves)))
     np.savez('selfplay/'+name, boards=torch.stack(boards), moves=moves, score=game.score,
              method=0)  # method 0 is fixed
+    print('Saved as {}.npz'.format(name))
+
+
+def selfplay(name, model, game, number=10, device='cpu', verbose=False):
+    """Plays through one game using mcts_nn. Returns all
+    boards and move choices of the main line for training.
+
+    Args:
+        name (str): name for data
+        game (Board): the starting game state. If `None`
+            is passed, a new Board is generated.
+        model: keras model to predict moves
+        number (int): # of lines to try for each move.
+            Defaults to 10
+        device: torch device. Defaults to 'cpu'
+        verbose (bool): whether to print anything
+            Defaults to False
+
+    Returns:
+        boards: list of boards
+        moves: list of mcts_nn moves
+
+    """
+    if not game:
+        game = Board(gen=True, draw=verbose, device=device)
+    boards = []
+    moves = []
+    while True:
+        if not len(moves) % 20:
+            print('Move {}'.format(len(moves)))
+        boards.append(game.board.clone())
+        pred = mcts_nn(model, game, number=number)
+        # Only need to do argmax. If not possible, game is dead
+        i = np.argmax(pred)
+        if game.move(i):
+            game.generate_tile()
+            moves.append(i)
+            if verbose:
+                os.system(CLEAR)
+                print('Seed {}'.format(name))
+                print(pred)
+                print(ARROWS[i.item()])
+                game.draw()
+            continue
+        else:
+            boards.pop()
+            break
+    print('Game Over')
+    game.draw()
+    print('{} moves'.format(len(moves)))
+    np.savez('selfplay/'+name, boards=torch.stack(boards), moves=moves, score=game.score)
     print('Saved as {}.npz'.format(name))
 
 
