@@ -16,3 +16,10 @@ papers
 logs
 models
 ax_botorch/unused
+*.npz
+*.pt
+
+# Exceptions
+!00000.npz
+!00079.npz
+!00100.npz
