@@ -1,8 +1,8 @@
 from argparse import ArgumentParser
 from board import *  # os, np, torch, board, CONSTANTS
 from mcts_batch import mcts_fixed_batch
-from mcts_nn import mcts_nn
-from network import ConvNet
+from mcts_nn import mcts_nn, mcts_nn_min
+from network import *
 
 
 def selfplay_fixed(name, game, number=50, verbose=False):
@@ -50,12 +50,16 @@ def selfplay_fixed(name, game, number=50, verbose=False):
     print(game.score)
     print('Game Over')
     print('{} moves'.format(len(moves)))
-    np.savez('selfplay/'+name, boards=torch.stack(boards), moves=moves, score=game.score,
+    np.savez('selfplay/'+name,
+             boards=torch.stack(boards),
+             moves=moves,
+             score=game.score,
              method=0)  # method 0 is fixed
     print('Saved as {}.npz'.format(name))
 
 
-def selfplay(name, model, game, number=10, device='cpu', verbose=False):
+def selfplay(name, model, game, number=10, device='cpu',
+             verbose=False, mcts_min=False):
     """Plays through one game using mcts_nn. Returns all
     boards and move choices of the main line for training.
 
@@ -69,6 +73,8 @@ def selfplay(name, model, game, number=10, device='cpu', verbose=False):
         device: torch device. Defaults to 'cpu'
         verbose (bool): whether to print anything
             Defaults to False
+        mcts_min (bool): whether to use conservative
+            strategy, max move number before single death.
 
     Returns:
         boards: list of boards
@@ -80,10 +86,13 @@ def selfplay(name, model, game, number=10, device='cpu', verbose=False):
     boards = []
     moves = []
     while True:
-        if not len(moves) % 20:
+        if verbose and not len(moves) % 20:
             print('Move {}'.format(len(moves)))
         boards.append(game.board.clone())
-        pred = mcts_nn(model, game, number=number)
+        if mcts_min:
+            pred = mcts_nn_min(model, game, number=number)
+        else:
+            pred = mcts_nn(model, game, number=number)
         # Only need to do argmax. If not possible, game is dead
         i = np.argmax(pred)
         if game.move(i):
@@ -102,7 +111,12 @@ def selfplay(name, model, game, number=10, device='cpu', verbose=False):
     print('Game Over')
     game.draw()
     print('{} moves'.format(len(moves)))
-    np.savez('selfplay/'+name, boards=torch.stack(boards), moves=moves, score=game.score)
+    if mcts_min:
+        name = 'min' + name
+    np.savez('selfplay/'+name,
+             boards=torch.stack(boards),
+             moves=moves,
+             score=game.score)
     print('Saved as {}.npz'.format(name))
 
 
@@ -120,11 +134,13 @@ if __name__ == '__main__':
     torch.manual_seed(s)
     name = str(s).zfill(5)
 
-    a = Board(device='cpu', draw=True)
-    m_name = '20190715/100_120_epox5_lr0.0034pre_e4'
-    print('Using model: {}'.format(m_name))
-    m = ConvNet(channels=32, num_blocks=4)
-    m.load_state_dict(torch.load('models/{}.pt'.format(m_name)))
-    m.to('cuda')
+    # m_name = '20190715/100_120_epox5_lr0.0034pre_e4'
+    # print('Using model: {}'.format(m_name))
+    # m = ConvNet(channels=32, num_blocks=4)
+    # m.load_state_dict(torch.load('models/{}.pt'.format(m_name)))
+    # m.to('cuda')
 
-    selfplay(name, m, a, number=50, verbose=args.verbose)
+    m = RandNet()
+    a = Board(device='cpu', draw=True)
+
+    selfplay(name, m, a, number=50, verbose=args.verbose, mcts_min=True)

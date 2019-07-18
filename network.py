@@ -18,6 +18,18 @@ class Fixed:
         return self.out.repeat(b, 1)
 
 
+class RandNet:
+    def __init__(self):
+        pass
+
+    def eval(self):
+        pass
+
+    def forward(self, x):
+        b = x.size(0)
+        return torch.randn((b, 4))
+
+
 class TestNet(nn.Module):
     def __init__(self):
         super(TestNet, self).__init__()

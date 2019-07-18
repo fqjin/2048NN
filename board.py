@@ -19,10 +19,10 @@ SIZE_SQRD = SIZE*SIZE  # 16
 # Print options
 np.set_printoptions(precision=3, suppress=True)
 CLEAR = 'clear' if os.name == 'posix' else 'cls'
-ARROWS = {0: '        \u2b9c        .',
-          1: '        \u2b9d        .',
-          2: '        \u2b9e        .',
-          3: '        \u2b9f        .'}
+ARROWS = {0: '  \u2b9c             .',
+          1: '     \u2b9d          .',
+          2: '         \u2b9e      .',
+          3: '             \u2b9f  .'}
 
 flipdict = {
     0: lambda x: x,
