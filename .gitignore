@@ -20,6 +20,6 @@ ax_botorch/unused
 *.pt
 
 # Exceptions
-!00000.npz
-!00079.npz
-!00100.npz
+!mean_log_score/00000.npz
+!mean_log_score/00079.npz
+!mean_log_score/00100.npz

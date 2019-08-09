@@ -103,6 +103,7 @@ def mcts_nn_min(model, origin, number=10):
                     subgames = games
                     boards = [g.board for g in subgames]
                     preds = model.forward(torch.stack(boards).cuda().float().unsqueeze(1))
+                    # preds = torch.randn((len(boards), 4))
                     preds = torch.argsort(preds.cpu(), dim=1, descending=True)
                     for g, p in zip(subgames, preds):
                         g.pred = p

@@ -35,7 +35,7 @@ def eval_nn(name, model, origin=None, number=1000, device='cpu'):
                 subgames = [g for g in notdead if not g.moved]
                 if i == 0:
                     boards = [g.board for g in subgames]
-                    preds = model.forward(torch.stack(boards).float().unsqueeze(1).cuda())
+                    preds = model.forward(torch.stack(boards).cuda().float().unsqueeze(1))
                     preds = torch.argsort(preds.cpu(), dim=1, descending=True)
                     for g, p in zip(subgames, preds):
                         g.pred = p
@@ -44,9 +44,9 @@ def eval_nn(name, model, origin=None, number=1000, device='cpu'):
                     moves = [g.pred[i] for g in subgames]
                 Board.move_batch(subgames, moves)
             notdead = [g for g in notdead if g.moved]
-            Board.generate_tile_batch(notdead)
             if not notdead:
                 break
+            Board.generate_tile_batch(notdead)
 
     scores = np.asarray([g.score for g in games])
     logscores = np.log10(scores+1)
@@ -60,9 +60,9 @@ if __name__ == '__main__':
     from network import ConvNet
     a = Board(draw=True)
 
-    for i in [0, 4]:
-        name = '20190715/100_120_epox5_lr0.0034pre_e{}'.format(i)
-        m = ConvNet(channels=32, num_blocks=4)
+    for i in [0, 66]:
+        name = '20190809/0_100_epox69_clr1.0_e{}'.format(i)
+        m = ConvNet(channels=32, num_blocks=5)
         m.load_state_dict(torch.load('models/{}.pt'.format(name)))
         m.to('cuda')
         t = time()

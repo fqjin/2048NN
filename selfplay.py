@@ -81,6 +81,7 @@ def selfplay(name, model, game, number=10, device='cpu',
         moves: list of mcts_nn moves
 
     """
+    print('Seed {}'.format(name))
     if not game:
         game = Board(gen=True, draw=verbose, device=device)
     boards = []
@@ -112,7 +113,7 @@ def selfplay(name, model, game, number=10, device='cpu',
     game.draw()
     print('{} moves'.format(len(moves)))
     if mcts_min:
-        name = 'min' + name
+        name = 'min_move_dead/min' + name
     np.savez('selfplay/'+name,
              boards=torch.stack(boards),
              moves=moves,
@@ -134,13 +135,13 @@ if __name__ == '__main__':
     torch.manual_seed(s)
     name = str(s).zfill(5)
 
-    # m_name = '20190715/100_120_epox5_lr0.0034pre_e4'
-    # print('Using model: {}'.format(m_name))
-    # m = ConvNet(channels=32, num_blocks=4)
-    # m.load_state_dict(torch.load('models/{}.pt'.format(m_name)))
-    # m.to('cuda')
+    m_name = '20190809/0_100_epox69_clr1.0_e66'
+    print('Using model: {}'.format(m_name))
+    m = ConvNet(channels=32, num_blocks=5)
+    m.load_state_dict(torch.load('models/{}.pt'.format(m_name)))
+    m.to('cuda')
+    # m = Fixed()
 
-    m = RandNet()
     a = Board(device='cpu', draw=True)
 
     selfplay(name, m, a, number=50, verbose=args.verbose, mcts_min=True)

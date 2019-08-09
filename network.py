@@ -92,7 +92,7 @@ class ConvNet(nn.Module):
 
 
 if __name__ == '__main__':
-    m = ConvNet()
+    m = ConvNet(channels=32, num_blocks=5)
     params = sum(p.numel() for p in m.parameters())
     print(params)
-    # 28540
+    # 93548
