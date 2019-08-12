@@ -169,13 +169,12 @@ if __name__ == '__main__':
     #      path='selfplay/min_move_dead/min',
     #      net_params=dict(channels=32, num_blocks=5)
     #      )
-    epox = 69
-    cyclic(t_tuple=(20, 100), v_tuple=(0, 20),
-           lr_tuple=(0.06, 1.0),
+    cyclic(t_tuple=(0, 400), v_tuple=None,
+           lr_tuple=(0.038, 1.0),
            mom_tuple=(0.95, 0.85),
            batch_size=1024,
-           epochs=epox,
-           decay=1.7e-3,
+           epochs=22,
+           decay=0.00052,
            path='selfplay/min_move_dead/min',
            net_params=dict(channels=32, num_blocks=5)
            )

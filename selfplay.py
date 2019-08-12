@@ -67,7 +67,7 @@ def selfplay(name, model, game, number=10, device='cpu',
         name (str): name for data
         game (Board): the starting game state. If `None`
             is passed, a new Board is generated.
-        model: keras model to predict moves
+        model: model to predict moves
         number (int): # of lines to try for each move.
             Defaults to 10
         device: torch device. Defaults to 'cpu'
@@ -135,7 +135,7 @@ if __name__ == '__main__':
     torch.manual_seed(s)
     name = str(s).zfill(5)
 
-    m_name = '20190809/0_100_epox69_clr1.0_e66'
+    m_name = '20190812/0_400_epox22_clr0.038_e20'
     print('Using model: {}'.format(m_name))
     m = ConvNet(channels=32, num_blocks=5)
     m.load_state_dict(torch.load('models/{}.pt'.format(m_name)))

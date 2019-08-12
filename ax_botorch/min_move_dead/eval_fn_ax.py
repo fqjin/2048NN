@@ -14,7 +14,8 @@ from network import ConvNet
 
 start_board = Board()
 
-t_tuple = (0, 100)
+t_tuple = (int(input('t_start: ')), int(input('t_end: ')))
+print('Using games {} to {}'.format(*t_tuple))
 # validation not used
 batch_size = 1024
 mom_tuple = (0.95, 0.85)

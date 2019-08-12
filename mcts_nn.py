@@ -155,6 +155,7 @@ def play_nn(model, game, press_enter=False, device='cpu', verbose=False):
         game = Board(gen=True, draw=True, device=device)
     model.eval()
     with torch.no_grad():
+        counter = 0
         while True:
             if press_enter and input() == 'q':
                 break
@@ -167,8 +168,10 @@ def play_nn(model, game, press_enter=False, device='cpu', verbose=False):
                         print(pred)
                         print(ARROWS[i.item()])
                         game.draw()
+                    counter += 1
                     break
             else:
                 print(game.score)
+                print('Moves: {}'.format(counter))
                 print('Game Over')
                 break
