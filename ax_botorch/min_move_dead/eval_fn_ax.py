@@ -57,7 +57,7 @@ def train(params):
                                 nesterov=True,
                                 weight_decay=decay)
 
-    lr = np.geomspace(lr, 1.0, epochs//2)
+    lr = np.geomspace(lr, 0.5, epochs//2)
     lr = np.concatenate([lr,
                          np.flip(lr[:-1]),
                          # np.geomspace(lr[0], lr[0]/10, epochs//10+1)[1:],

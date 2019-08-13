@@ -44,7 +44,7 @@ def range_test(t_tuple,
     if net_params is None:
         net_params = dict(channels=32, num_blocks=4)
     start, end = t_tuple
-    logname = 'range_test_b{}_d{}'.format(batch_size, decay)
+    logname = 'range_test_{}_{}_b{}_d{}'.format(start, end, batch_size, decay)
 
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     train_set = GameDataset(path, start, end, device, augment=False)
@@ -89,12 +89,12 @@ def range_test(t_tuple,
 
 
 if __name__ == '__main__':
-    range_test(t_tuple=(20, 100), v_tuple=(0, 20),
-               lr_tuple=(0.01, 2.0),
+    range_test(t_tuple=(20, 500), v_tuple=(0, 20),
+               lr_tuple=(0.005, 2.0),
                mom_tuple=(0.95, 0.85),
-               batch_size=2048,
+               batch_size=4096,
                steps=500,
-               decay=1e-6,
+               decay=1e-4,
                path='selfplay/min_move_dead/min',
                net_params=dict(channels=32, num_blocks=5)
                )
