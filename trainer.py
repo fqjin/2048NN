@@ -23,6 +23,16 @@ def train_loop(model, data, loss_fn, optimizer):
     return running_loss
 
 
+def train_step(model, x, y, loss_fn, optimizer):
+    model.train()
+    optimizer.zero_grad()
+    pred = model(x)
+    loss = loss_fn(pred, y)
+    loss.backward()
+    optimizer.step()
+    return loss.data.item()
+
+
 def valid_loop(model, data, loss_fn):
     model.eval()
     running_loss = 0
@@ -120,12 +130,13 @@ def cyclic(t_tuple,
         valid_set = GameDataset(path, v_tuple[0], v_tuple[1], device, augment=False)
         valid_dat = DataLoader(valid_set, batch_size=batch_size, shuffle=False)
 
-    lr = np.geomspace(lr_tuple[0], lr_tuple[1], epochs//2)
+    steps = epochs * len(train_dat)
+    lr = np.geomspace(lr_tuple[0], lr_tuple[1], steps//2)
     lr = np.concatenate([lr,
                          np.flip(lr[:-1]),
                          # np.geomspace(lr[0], lr[0]/10, epochs//10+1)[1:],
                          ])
-    momentum = np.linspace(mom_tuple[0], mom_tuple[1], epochs//2)
+    momentum = np.linspace(mom_tuple[0], mom_tuple[1], steps//2)
     momentum = np.concatenate([momentum,
                                np.flip(momentum[:-1]),
                                # np.full(epochs//10, momentum[0]),
@@ -137,7 +148,7 @@ def cyclic(t_tuple,
         print('Loaded ' + pretrained)
         logname += 'pre'
     m.to(device)
-    torch.save(m.state_dict(), 'models/'+logname+'_e0.pt')
+    # torch.save(m.state_dict(), 'models/'+logname+'_e0.pt')
     loss_fn = nn.NLLLoss()
     optimizer = torch.optim.SGD(m.parameters(),
                                 lr=lr[0],
@@ -146,35 +157,41 @@ def cyclic(t_tuple,
                                 weight_decay=decay)
     t_loss = []
     v_loss = []
-    for epoch in range(len(lr)):
-        print('-' * 10)
-        print('Epoch: {0}, LR: {1:.3f}'.format(epoch, lr[epoch]))
+    train_iter = iter(train_dat)
+    for step in tqdm(range(len(lr))):
         for param_group in optimizer.param_groups:
-            param_group['lr'] = lr[epoch]
-            param_group['momentum'] = momentum[epoch]
+            param_group['lr'] = lr[step]
+            param_group['momentum'] = momentum[step]
+        try:
+            x, y = next(train_iter)
+        except StopIteration:
+            train_iter = iter(train_dat)
+            x, y = next(train_iter)
 
-        t_loss.append(train_loop(m, train_dat, loss_fn, optimizer))
-        if v_tuple is not None:
-            v_loss.append(valid_loop(m, valid_dat, loss_fn))
-    torch.save(m.state_dict(), 'models/'+logname+'_e{}.pt'.format(epoch))
+        if (step+1) % len(train_dat) == 0:
+            print('-' * 10)
+            print('Epoch: {0}, LR: {1:.3f}'.format(step//len(train_dat), lr[step]))
+            # TODO: Make output t_loss an average over epoch not just at one step
+            running_loss = train_step(m, x, y, loss_fn, optimizer)
+            t_loss.append(running_loss)
+            print('Train Loss: {:.3f}'.format(running_loss))
+            print('Imp Acc: {:.3f}'.format(np.exp(-1 * running_loss)))
+            if v_tuple is not None:
+                v_loss.append(valid_loop(m, valid_dat, loss_fn))
+        else:
+            train_step(m, x, y, loss_fn, optimizer)
+    torch.save(m.state_dict(), 'models/'+logname+'_e{}.pt'.format('x'))
 
     np.savez('logs/'+logname, t_loss=t_loss, v_loss=v_loss, lr=lr, params=params)
 
 
 if __name__ == '__main__':
-    # main(t_tuple=(20, 100), v_tuple=(0, 20),
-    #      batch_size=512,
-    #      epochs=50, save_period=50,
-    #      lr=0.28, decay=5.5e-4,
-    #      path='selfplay/min_move_dead/min',
-    #      net_params=dict(channels=32, num_blocks=5)
-    #      )
-    cyclic(t_tuple=(0, 400), v_tuple=None,
-           lr_tuple=(0.038, 1.0),
+    cyclic(t_tuple=(0, 600), v_tuple=None,
+           lr_tuple=(0.01, 0.2),
            mom_tuple=(0.95, 0.85),
            batch_size=1024,
-           epochs=22,
-           decay=0.00052,
+           epochs=30,
+           decay=0.001,
            path='selfplay/min_move_dead/min',
            net_params=dict(channels=32, num_blocks=5)
            )

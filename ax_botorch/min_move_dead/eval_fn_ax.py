@@ -19,6 +19,7 @@ print('Using games {} to {}'.format(*t_tuple))
 # validation not used
 batch_size = 1024
 mom_tuple = (0.95, 0.85)
+print('Using b{} and m{}'.format(batch_size, mom_tuple))
 
 os.chdir('../..')
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -27,18 +28,14 @@ train_dat = DataLoader(train_set, batch_size=batch_size, shuffle=True)
 os.chdir('ax_botorch/min_move_dead')
 
 
-def train_loop(model, data, loss_fn, optimizer):
+def train_loop(model, x, y, loss_fn, optimizer):
     model.train()
-    running_loss = 0
-    for x, y in data:
-        optimizer.zero_grad()
-        pred = model(x)
-        loss = loss_fn(pred, y)
-        running_loss += loss.data.item()
-        loss.backward()
-        optimizer.step()
-    running_loss /= len(data)
-    return running_loss
+    optimizer.zero_grad()
+    pred = model(x)
+    loss = loss_fn(pred, y)
+    loss.backward()
+    optimizer.step()
+    return loss.data.item()
 
 
 def train(params):
@@ -57,22 +54,23 @@ def train(params):
                                 nesterov=True,
                                 weight_decay=decay)
 
-    lr = np.geomspace(lr, 0.5, epochs//2)
-    lr = np.concatenate([lr,
-                         np.flip(lr[:-1]),
-                         # np.geomspace(lr[0], lr[0]/10, epochs//10+1)[1:],
-                         ])
-    momentum = np.linspace(mom_tuple[0], mom_tuple[1], epochs//2)
-    momentum = np.concatenate([momentum,
-                               np.flip(momentum[:-1]),
-                               # np.full(epochs//10, momentum[0]),
-                               ])
+    steps = epochs * len(train_dat)
+    lr = np.geomspace(lr, 0.2, steps//2)
+    lr = np.concatenate([lr, np.flip(lr[:-1])])
+    momentum = np.linspace(mom_tuple[0], mom_tuple[1], steps//2)
+    momentum = np.concatenate([momentum, np.flip(momentum[:-1])])
 
+    train_iter = iter(train_dat)
     for epoch in tqdm(range(len(lr))):
         for param_group in optimizer.param_groups:
             param_group['lr'] = lr[epoch]
             param_group['momentum'] = momentum[epoch]
-        train_loop(m, train_dat, loss_fn, optimizer)
+        try:
+            x, y = next(train_iter)
+        except StopIteration:
+            train_iter = iter(train_dat)
+            x, y = next(train_iter)
+        train_loop(m, x, y, loss_fn, optimizer)
     return m
 
 

@@ -60,13 +60,12 @@ if __name__ == '__main__':
     from network import ConvNet
     a = Board(draw=True)
 
-    for i in [0, 66]:
-        name = '20190809/0_100_epox69_clr1.0_e{}'.format(i)
-        m = ConvNet(channels=32, num_blocks=5)
-        m.load_state_dict(torch.load('models/{}.pt'.format(name)))
-        m.to('cuda')
-        t = time()
-        eval_nn(name, m, origin=a)
-        t = time() - t
-        print('{0:.3f} seconds'.format(t))
-        print('-'*10)
+    name = '20190815/0_600_epox30_clr0.01_ex'
+    m = ConvNet(channels=32, num_blocks=5)
+    m.load_state_dict(torch.load('models/{}.pt'.format(name)))
+    m.to('cuda')
+    t = time()
+    eval_nn(name, m, origin=a)
+    t = time() - t
+    print('{0:.3f} seconds'.format(t))
+    print('-'*10)

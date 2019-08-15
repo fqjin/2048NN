@@ -135,7 +135,7 @@ if __name__ == '__main__':
     torch.manual_seed(s)
     name = str(s).zfill(5)
 
-    m_name = '20190812/0_400_epox22_clr0.038_e20'
+    m_name = '20190815/0_600_epox30_clr0.01_ex'
     print('Using model: {}'.format(m_name))
     m = ConvNet(channels=32, num_blocks=5)
     m.load_state_dict(torch.load('models/{}.pt'.format(m_name)))
