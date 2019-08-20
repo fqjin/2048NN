@@ -20,6 +20,7 @@ def eval_nn(name, model, origin=None, number=1000, device='cpu'):
         saves
 
     """
+    print(name)
     if origin is None:
         games = [Board(device=device) for _ in range(number)]
     else:
@@ -51,7 +52,6 @@ def eval_nn(name, model, origin=None, number=1000, device='cpu'):
     scores = np.asarray([g.score for g in games])
     logscores = np.log10(scores+1)
     np.savez('models/{}.npz'.format(name), scores=scores)
-    print(name)
     print('Score: {0:.0f} / {1:.0f}'.format(np.mean(scores), np.std(scores)/np.sqrt(number)))
     print('Log Score: {0:.3f} / {1:.3f}'.format(np.mean(logscores), np.std(logscores)/np.sqrt(number)))
 
@@ -60,7 +60,8 @@ if __name__ == '__main__':
     from network import ConvNet
     a = Board(draw=True)
 
-    name = '20190815/0_600_epox30_clr0.01_ex'
+    name = '20190820/0_800_epox5_clr0.001pre_ex'
+
     m = ConvNet(channels=32, num_blocks=5)
     m.load_state_dict(torch.load('models/{}.pt'.format(name)))
     m.to('cuda')

@@ -155,6 +155,7 @@ def cyclic(t_tuple,
                                 momentum=momentum[0],
                                 nesterov=True,
                                 weight_decay=decay)
+    running_loss = []
     t_loss = []
     v_loss = []
     train_iter = iter(train_dat)
@@ -168,30 +169,29 @@ def cyclic(t_tuple,
             train_iter = iter(train_dat)
             x, y = next(train_iter)
 
+        running_loss.append(train_step(m, x, y, loss_fn, optimizer))
         if (step+1) % len(train_dat) == 0:
             print('-' * 10)
             print('Epoch: {0}, LR: {1:.3f}'.format(step//len(train_dat), lr[step]))
-            # TODO: Make output t_loss an average over epoch not just at one step
-            running_loss = train_step(m, x, y, loss_fn, optimizer)
-            t_loss.append(running_loss)
-            print('Train Loss: {:.3f}'.format(running_loss))
-            print('Imp Acc: {:.3f}'.format(np.exp(-1 * running_loss)))
+            t_loss.append(np.mean(running_loss))
+            running_loss = []
+            print('Train Loss: {:.3f}'.format(t_loss[-1]))
+            print('Imp Acc: {:.3f}'.format(np.exp(-1 * t_loss[-1])))
             if v_tuple is not None:
                 v_loss.append(valid_loop(m, valid_dat, loss_fn))
-        else:
-            train_step(m, x, y, loss_fn, optimizer)
-    torch.save(m.state_dict(), 'models/'+logname+'_e{}.pt'.format('x'))
 
+    torch.save(m.state_dict(), 'models/'+logname+'_e{}.pt'.format('x'))
     np.savez('logs/'+logname, t_loss=t_loss, v_loss=v_loss, lr=lr, params=params)
 
 
 if __name__ == '__main__':
-    cyclic(t_tuple=(0, 600), v_tuple=None,
-           lr_tuple=(0.01, 0.2),
-           mom_tuple=(0.95, 0.85),
+    cyclic(t_tuple=(0, 800), v_tuple=None,
+           lr_tuple=(0.001, 0.001),
+           mom_tuple=(0.95, 0.95),
            batch_size=1024,
-           epochs=30,
+           epochs=5,
            decay=0.001,
            path='selfplay/min_move_dead/min',
-           net_params=dict(channels=32, num_blocks=5)
+           net_params=dict(channels=32, num_blocks=5),
+           pretrained='20190819/0_700_epox45_clr0.01_ex'
            )
