@@ -132,12 +132,19 @@ def move_row(x, rev):
 
 
 # Generate merge tables
-# Takes ~ 0.32 seconds
-merge_table = []
-merge_table_rev = []
-for b in range(2**16):
-    merge_table.append(move_row(b, False))
-    merge_table_rev.append(move_row(b, True))
+# Making a new table takes ~ 0.32 seconds
+# Loading the pickle takes ~ 0.08 seconds
+make_new_tables = False
+if make_new_tables:
+    merge_table = []
+    merge_table_rev = []
+    for b in range(2**16):
+        merge_table.append(move_row(b, False))
+        merge_table_rev.append(move_row(b, True))
+else:
+    import pickle
+    with open('merge_tables.pickle', 'rb') as pkl:
+        merge_table, merge_table_rev = pickle.load(pkl)
 
 
 def move(x, direction):
@@ -150,9 +157,10 @@ def move(x, direction):
             1 : Up
             2 : Right
             3 : Down
+            Note: other indices still work modulo 4
 
     Returns:
-        output board, score, moved bool
+        board, score, moved (bool)
     """
     final = 0
     score = 0
@@ -180,37 +188,40 @@ def move(x, direction):
     return final, score, moved
 
 
-def play_fixed(board=None, press_enter=False, verbose=True):
-    """Run 2048 with the fixed move priority L,U,R,D.
+def play_fixed(board=None, press_enter=False):
+    """Run 2048 with the fixed move priority L,U,D,R
+
+    As shown by previous networks, L,U,D,R move order
+    is superior to L,U,R,D. Using a 1000 sample fixed
+    moved test, the p value for the mean is 2x10^-5
 
     Args (optional):
         board (int64): the starting board state
         press_enter (bool): Whether keyboard press is
             required for each step. Defaults to False.
             Type 'q' to quit when press_enter is True.
-
     """
     if not board:
         board = generate_init_tiles()
     score = 0
-    draw(board, score)
+    # draw(board, score)
     while True:
-        if press_enter and input() == 'q':
-            break
-        for i in range(4):
+        # if press_enter and input() == 'q':
+        #     break
+        for i in (0, 1, 3, 2):
             f, s, m = move(board, i)
             if m:
                 board = generate_tile(f)
                 score += s
-                if verbose:
-                    print(ARROWS[i])
-                    draw(board, score)
+                # if verbose:
+                #     print(ARROWS[i])
+                #     draw(board, score)
                 break
         else:
-            if not verbose:
-                draw(board, score)
-            print('Game Over')
-            return board
+            # if not verbose:
+            #     draw(board, score)
+            # print('Game Over')
+            return board, score
 
 
 class BoardArray:
@@ -225,13 +236,12 @@ class BoardArray:
         board (int64): starting board
 
     Attributes:
-        board: torch tensor of board tiles, stored as log-base-2
-        score: int score, the sum of all combination values
-
+        boards: np.array of boards
+        scores: np.array of scores
     """
-    def __init__(self, copies, board=0):
-        self.boards = np.array([board]*copies, dtype=np.int64)
-        self.scores = np.zeros(copies)
+    def __init__(self, copies, board):
+        self.boards = [board] * copies  # np.full(copies, board, dtype=np.int64)
+        self.scores = [0] * copies  # np.zeros(copies, dtype=np.int32)
 
     def tensor(self, device='cpu'):
         """Converts board array to pytorch tensor"""
@@ -242,68 +252,53 @@ class BoardArray:
             tmp >>= 4
         return torch.tensor(data, dtype=torch.float32, device=device).transpose(0, 1)
 
-    # def move_batch(games, moves):
-    #     """Perform moves on a batch of games
-    #
-    #     Args:
-    #         games: a list of Board objects
-    #         moves: a list of direction indices (0 to 3)
-    #             if moves in an integer, it is broadcasted
-    #
-    #     Returns:
-    #         None
-    #         - board, moved, and score attributes of games are modified
-    #
-    #     """
-    #     if not games:
-    #         return None
-    #     if isinstance(moves, int):
-    #         moves = [moves] * len(games)
-    #         moves = torch.ByteTensor(moves)
-    #     rows = [flipdict[move.item()](game.board) for game, move in zip(games, moves)]
-    #     rows = torch.cat(rows)
-    #     newrows, scores, moved = Board.merge_row_batch(rows)
-    #     newrows = newrows.view(-1, SIZE, SIZE)
-    #     scores = torch.sum(scores.view(-1, SIZE), dim=1)
-    #     moved = torch.sum(moved.view(-1, SIZE), dim=1)
-    #     for game, board, score, move, m in \
-    #             zip(games, newrows, scores, moves, moved):
-    #         if m:
-    #             game.moved = 1
-    #             game.score += score.item()
-    #             game.board = unflipdict[move.item()](board)
+    def move_batch(self, move_list):
+        """Perform moves on a batch of games
+
+        Args:
+            move_list: ordered direction indices (0 to 3) for
+                each board in self.boards. If a tuple is given,
+                it must be length 4 and is used for every board.
+
+        Returns:
+            dead boards, dead scores
+        """
+        if isinstance(move_list, tuple):
+            move_list = [move_list] * len(self.boards)
+        # elif len(move_list) != len(self.boards):
+        #     raise ValueError('move_list not len boards')
+        new_b = []
+        new_s = []
+        dead_s = []
+        for board, score, moves in zip(self.boards, self.scores, move_list):
+            for i in moves:
+                f, s, m = move(board, i)
+                if m:
+                    new_b.append(generate_tile(f))
+                    new_s.append(score + s)
+                    break
+            else:
+                # dead_b.append(board)
+                dead_s.append(score)
+        self.boards = new_b
+        self.scores = new_s
+        return dead_s
 
 
-# def play_fixed_batch(games=None, number=None, device='cpu'):
-#     """Run 2048 with the fixed move priority L,U,R,D.
-#
-#     Args (optional):
-#         games: a list of games to play. Defaults to None
-#         number: if no games provided, generate this number
-#         device: torch device. Defaults to 'cpu'
-#
-#     """
-#     if not games:
-#         # if not number:
-#         #     raise ValueError('games and number both None')
-#         games = [Board(device=device, gen=True) for _ in range(number)]
-#     # fixed_moves = torch.arange(4).repeat((len(games), 1))
-#     while True:
-#         for i in range(4):
-#             subgames = [
-#                 g for g in games if not g.dead and not g.moved
-#             ]
-#             Board.move_batch(subgames, i)
-#         for g in games:
-#             if g.moved:
-#                 g.moved = 0
-#                 g.generate_tile()
-#             else:
-#                 g.dead = 1
-#         if 0 not in [g.dead for g in games]:
-#             break
-#     for g in games:
-#         # g.draw()
-#         print(g.score)
-#     # print('Game Over')
-#     # return games
+def play_fixed_batch(number):
+    array = BoardArray(number, 0)
+    array.boards = [generate_init_tiles() for _ in range(number)]
+    scores = []
+    # count = 0
+    while array.boards:
+        dead_s = array.move_batch((0, 1, 3, 2))
+        if dead_s:
+            # print('{} died on move {}'.format(len(dead_s), count))
+            scores.extend(dead_s)
+        # count += 1
+    # print('Game Over')
+    return scores
+
+
+
+

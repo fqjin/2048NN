@@ -4,8 +4,12 @@ This project uses a policy network and tree search to find the optimal moves.
 The neural network is trained through self-play reinforcement learning.
 
 
-### New changes (nibble):
-* Changed board processing code to use nibbles and bitwise operators, as proposed in github/nneonneo/2048-ai. This provides a large speedup in board operations.
+### Nibble
+* Changed board processing code to use nibbles and bitwise operators, as proposed in github/nneonneo/2048-ai.
+* `play_fixed` is 80 times faster
+* `play_fixed_batch` is 11 times faster (previous batch methods were 7.5x faster, new method has no batch acceleration)
+
+### Other changes
 * Neural network changed from convolutional network to full connected network operating on the flattened 16 tiles.
 * Median of rollout scores is used as the final score. The score distributions are extremely right skew, so median is a better summary statistic that helps favor 'safety' rather than 'expected value'. Median is also faster because only 50% of rollouts need to terminate.
 
