@@ -16,6 +16,7 @@ papers
 logs
 models
 ax_botorch/unused
+*.npy
 *.npz
 *.pt
 merge_tables.pickle
