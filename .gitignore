@@ -18,6 +18,7 @@ models
 ax_botorch/unused
 *.npz
 *.pt
+merge_tables.pickle
 
 # Exceptions
 !mean_log_score/00000.npz

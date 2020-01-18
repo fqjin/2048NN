@@ -8,6 +8,8 @@ The neural network is trained through self-play reinforcement learning.
 * Changed board processing code to use nibbles and bitwise operators, as proposed in github/nneonneo/2048-ai.
 * `play_fixed` is 80 times faster
 * `play_fixed_batch` is 11 times faster (previous batch methods were 7.5x faster, new method has no batch acceleration)
+* `mcts_fixed_batch` (mean log score) is 4.7 times faster
+* `mcts_fixed_batch_moves` (median moves) is 5.6 times faster
 
 ### Other changes
 * Neural network changed from convolutional network to full connected network operating on the flattened 16 tiles.

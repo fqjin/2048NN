@@ -1,5 +1,6 @@
 import os
 import numpy as np
+import pickle
 import random
 import torch
 from random import randrange
@@ -134,17 +135,17 @@ def move_row(x, rev):
 # Generate merge tables
 # Making a new table takes ~ 0.32 seconds
 # Loading the pickle takes ~ 0.08 seconds
-make_new_tables = False
-if make_new_tables:
+try:
+    with open('merge_tables.pickle', 'rb') as pkl:
+        merge_table, merge_table_rev = pickle.load(pkl)
+except FileNotFoundError:
     merge_table = []
     merge_table_rev = []
     for b in range(2**16):
         merge_table.append(move_row(b, False))
         merge_table_rev.append(move_row(b, True))
-else:
-    import pickle
-    with open('merge_tables.pickle', 'rb') as pkl:
-        merge_table, merge_table_rev = pickle.load(pkl)
+    with open('merge_tables.pickle', 'wb') as pkl:
+        pickle.dump([merge_table, merge_table_rev], pkl)
 
 
 def move(x, direction):
@@ -204,24 +205,26 @@ def play_fixed(board=None, press_enter=False):
     if not board:
         board = generate_init_tiles()
     score = 0
+    count = 0
     # draw(board, score)
     while True:
-        # if press_enter and input() == 'q':
-        #     break
+        if press_enter and input() == 'q':
+            break
         for i in (0, 1, 3, 2):
             f, s, m = move(board, i)
             if m:
                 board = generate_tile(f)
                 score += s
-                # if verbose:
-                #     print(ARROWS[i])
-                #     draw(board, score)
+                count += 1
+                if press_enter:
+                    print(ARROWS[i])
+                    draw(board, score)
                 break
         else:
             # if not verbose:
             #     draw(board, score)
             # print('Game Over')
-            return board, score
+            return board, score, count
 
 
 class BoardArray:
@@ -236,8 +239,8 @@ class BoardArray:
         board (int64): starting board
 
     Attributes:
-        boards: np.array of boards
-        scores: np.array of scores
+        boards: list of boards
+        scores: list of scores
     """
     def __init__(self, copies, board):
         self.boards = [board] * copies  # np.full(copies, board, dtype=np.int64)
@@ -289,13 +292,11 @@ def play_fixed_batch(number):
     array = BoardArray(number, 0)
     array.boards = [generate_init_tiles() for _ in range(number)]
     scores = []
-    # count = 0
     while array.boards:
         dead_s = array.move_batch((0, 1, 3, 2))
         if dead_s:
             # print('{} died on move {}'.format(len(dead_s), count))
             scores.extend(dead_s)
-        # count += 1
     # print('Game Over')
     return scores
 

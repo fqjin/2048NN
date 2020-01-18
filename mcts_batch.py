@@ -1,87 +1,116 @@
-import os
-import numpy as np
-from board import Board, CLEAR, ARROWS
+from board import *
 
 
-def mcts_fixed_batch(origin, number=10, move_order=(0, 1, 2, 3)):
+def mcts_fixed_batch(origin, number=10, move_order=(0, 1, 3, 2)):
     """Run batch tree search using a fixed move order
 
-    Input game is copied to a list of games.
-    Each line played to end using move_batch
-    Code is very similar to `play_fixed_batch`
+    A BoardArray is made for each possible move
+    Lines in each array are played to end
+    Returns mean score for each initial move
 
     Args:
-        origin (Board): the starting game state
+        origin: the starting game state
         number (int): # of lines to simulate for each move.
             Defaults to 10
         move_order: tuple of the 4 move indices in order.
-            Defaults to (0, 1, 2, 3)
+            Defaults to (0, 1, 3, 2)
 
     Returns:
-        list: score increase for each move [Left, Up, Right, Down]
-
+        list: mean score increase for each move [Left, Up, Right, Down]
     """
-    games = []
-    result = np.zeros(4, dtype=np.float32)
+    result = []
     for i in range(4):
-        temp = origin.copy()
-        if temp.move(i):
-            games.extend([temp.copy() for _ in range(number)])
+        board, s, moved = move(origin, i)
+        if moved:
+            array = BoardArray(number, board)
+            array.boards = [generate_tile(b) for b in array.boards]
+            scores = []
+            while array.boards:
+                dead_s = array.move_batch(move_order)
+                if dead_s:
+                    scores.extend(dead_s)
+            scores = np.array(scores)
+            result.append(np.mean(np.log10(scores+s+1)))
         else:
-            result[i] = -1
-    if not games:
-        return result
-    Board.generate_tile_batch(games)
-    notdead = games.copy()
-
-    while True:
-        for i in range(4):
-            subgames = [g for g in notdead if not g.moved]
-            Board.move_batch(subgames, move_order[i])
-        notdead = [g for g in notdead if g.moved]
-        Board.generate_tile_batch(notdead)
-        if not notdead:
-            break
-
-    index = 0
-    scores = np.asarray([g.score for g in games])
-    scores -= origin.score
-    scores = np.log10(scores + 1)  # log conversion shown to help
-    for i in range(4):
-        if not result[i]:
-            result[i] = np.mean(scores[index:index+number])
-            index += number
+            result.append(-1)
     return result
 
 
-def play_mcts_fixed_batch(game, number=5, move_order=(0, 1, 2, 3), verbose=False):
+def mcts_fixed_batch_moves(origin, number=10, move_order=(0, 1, 3, 2)):
+    """Run batch tree search using a fixed move order
+
+    A BoardArray is made for each possible move
+    Lines in each array are played to end
+    Returns median move count for each initial move (xx times faster)
+
+    Args:
+        origin: the starting game state
+        number (int): # of lines to simulate for each move.
+            Defaults to 10
+        move_order: tuple of the 4 move indices in order.
+            Defaults to (0, 1, 3, 2)
+
+    Returns:
+        list: median moves for each move [Left, Up, Right, Down]
+    """
+    result = []
+    for i in range(4):
+        board, score, moved = move(origin, i)
+        if moved:
+            array = BoardArray(number, board)
+            array.boards = [generate_tile(b) for b in array.boards]
+            count = 1
+            dead = 0
+            while array.boards:
+                dead_s = array.move_batch(move_order)
+                if dead_s:
+                    dead += len(dead_s)
+                    if dead >= number // 2:
+                        result.append(count)
+                        break
+                count += 1
+        else:
+            result.append(0)
+    return result
+
+
+def play_mcts_fixed_batch(board=None, number=10, move_order=(0, 1, 3, 2), press_enter=False, median=False):
     """Play a game using the default mcts_fixed
 
     Args:
-        game (Board): the starting game state. If `None`
+        board: the starting game state. If `None`
             is passed, a new Board is generated.
         number (int): # of lines to try for each move.
-            Defaults to 5
+            Defaults to 10
         move_order: tuple of the 4 move indices in order.
-            Defaults to (0, 1, 2, 3)
-        verbose (bool): whether to print mcts scores
-            Defaults to False
-
+            Defaults to (0, 1, 3, 2)
+        press_enter (bool)
+        median: use mcts_fixed_batch_moves instead of mcts_fixed_batch
     """
-    if not game:
-        game = Board(device='cpu', gen=True, draw=True)
+    if not board:
+        board = generate_init_tiles()
+    score = 0
+    count = 0
+    draw(board, score)
     while True:
-        scores = mcts_fixed_batch(game, number, move_order)
+        if press_enter and input() == 'q':
+            break
+        if median:
+            result = mcts_fixed_batch_moves(board, number, move_order)
+        else:
+            result = mcts_fixed_batch(board, number, move_order)
         os.system(CLEAR)
-        if verbose:
-            print(scores)
-        for i in np.flipud(np.argsort(scores)):
-            # TODO: Test torch vs numpy speed
-            if game.move(i):
+        for i in np.argsort(result)[::-1]:
+            f, s, m = move(board, i)
+            if m:
+                board = generate_tile(f)
+                score += s
                 print(ARROWS[i])
-                game.generate_tile()
-                game.draw()
+                print(result)
+                draw(board, score)
                 break
         else:
-            print('Game Over')
-            break
+            # if not verbose:
+            #     draw(board, score)
+            # print('Game Over')
+            return board, score, count
