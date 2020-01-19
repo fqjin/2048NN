@@ -132,7 +132,7 @@ def play_mcts_fixed(board=None, number=10, press_enter=False, mode=0):
         if press_enter and input() == 'q':
             break
         result = mcts_fn(board, number)
-        i = np.argsort(result)[-1]
+        i = np.argmax(result)
         f, s, m = move(board, i)
         if not m:  # first argsort move is legal if any move is legal
             break

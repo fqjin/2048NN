@@ -16,8 +16,8 @@ The neural network is trained through self-play reinforcement learning.
 
 
 ### Milestones:
-* First 2048 tile achieved: mcts_fixed 50 lines per move
-* First 4096 tile achieved: mcts_fixed 500 lines per move
+* First 2048 tile achieved: mcts_fixed 50 lines per move (98/200)
+* First 4096 tile achieved: mcts_fixed 50 lines per move (5/200)
 * First 8192 tile achieved: ...
 
 

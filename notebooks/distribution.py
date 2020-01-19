@@ -1,4 +1,4 @@
-from mcts_batch import *
+from mcts import *
 
 # Notes
 # 5 -> 50 takes 9x longer (but 2.5 times less trials)

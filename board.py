@@ -225,21 +225,6 @@ def play_fixed(board=None, press_enter=False):
             return board, score, count
 
 
-def to_tensor(boards, device='cpu'):
-    """Converts board array to pytorch tensor
-
-    Args:
-        boards: list of int64 boards
-        device: defaults to 'cpu'
-    """
-    data = []
-    tmp = boards.copy()
-    for _ in range(16):
-        data.append(tmp & 0xF)
-        tmp >>= 4
-    return torch.tensor(data, dtype=torch.float32, device=device).transpose(0, 1)
-
-
 class BoardArray:
     """Board array object stores 2048 boards and scores
 

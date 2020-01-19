@@ -1,6 +1,6 @@
 from argparse import ArgumentParser
 from board import *  # os, np, torch, board, CONSTANTS
-from mcts_batch import mcts_fixed
+from mcts import mcts_fixed
 # from mcts_nn import mcts_nn, mcts_nn_min
 # from network import *
 
@@ -31,7 +31,7 @@ def selfplay_fixed(name, board=None, number=10, verbose=False):
     results = []
     while True:
         result = mcts_fixed(board, number)
-        i = np.argsort(result)[-1]
+        i = np.argmax(result)
         f, s, m = move(board, i)
         if not m:
             break
