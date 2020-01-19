@@ -9,17 +9,16 @@ The neural network is trained through self-play reinforcement learning.
 * `play_fixed` is 80 times faster
 * `play_fixed_batch` is 11 times faster (previous batch methods were 7.5x faster, new method has no batch acceleration)
 * `mcts_fixed_batch` (mean log score) is 4.7 times faster
-* `mcts_fixed_batch_moves` (median moves) is 5.6 times faster
 
 ### Other changes
 * Neural network changed from convolutional network to full connected network operating on the flattened 16 tiles.
-* Median of rollout scores is used as the final score. The score distributions are extremely right skew, so median is a better summary statistic that helps favor 'safety' rather than 'expected value'. Median is also faster because only 50% of rollouts need to terminate.
+* Soft classification targets during training.
 
 
 ### Milestones:
-* First 2048 tile achieved ...
-* First 4096 tile achieved ...
-* First 8192 tile achieved ...
+* First 2048 tile achieved: mcts_fixed 50 lines per move
+* First 4096 tile achieved: mcts_fixed 500 lines per move
+* First 8192 tile achieved: ...
 
 
 ### Findings:

@@ -12,12 +12,12 @@ np.random.seed(seed)
 torch.manual_seed(seed)
 
 # Print options
-# np.set_printoptions(precision=3, suppress=True)
+np.set_printoptions(precision=3, suppress=True)
 CLEAR = 'clear' if os.name == 'posix' else 'cls'
-ARROWS = {0: '  \u2b9c             .',
-          1: '     \u2b9d          .',
-          2: '         \u2b9e      .',
-          3: '             \u2b9f  .'}
+ARROWS = {0: '  \u2b9c                   .',
+          1: '       \u2b9d              .',
+          2: '            \u2b9e         .',
+          3: '                 \u2b9f    .'}
 
 
 def get_tiles(x):
@@ -141,9 +141,9 @@ try:
 except FileNotFoundError:
     merge_table = []
     merge_table_rev = []
-    for b in range(2**16):
-        merge_table.append(move_row(b, False))
-        merge_table_rev.append(move_row(b, True))
+    for brd in range(2**16):
+        merge_table.append(move_row(brd, False))
+        merge_table_rev.append(move_row(brd, True))
     with open('merge_tables.pickle', 'wb') as pkl:
         pickle.dump([merge_table, merge_table_rev], pkl)
 
@@ -206,7 +206,8 @@ def play_fixed(board=None, press_enter=False):
         board = generate_init_tiles()
     score = 0
     count = 0
-    # draw(board, score)
+    if press_enter:
+        draw(board, score)
     while True:
         if press_enter and input() == 'q':
             break
@@ -221,10 +222,22 @@ def play_fixed(board=None, press_enter=False):
                     draw(board, score)
                 break
         else:
-            # if not verbose:
-            #     draw(board, score)
-            # print('Game Over')
             return board, score, count
+
+
+def to_tensor(boards, device='cpu'):
+    """Converts board array to pytorch tensor
+
+    Args:
+        boards: list of int64 boards
+        device: defaults to 'cpu'
+    """
+    data = []
+    tmp = boards.copy()
+    for _ in range(16):
+        data.append(tmp & 0xF)
+        tmp >>= 4
+    return torch.tensor(data, dtype=torch.float32, device=device).transpose(0, 1)
 
 
 class BoardArray:
@@ -245,15 +258,6 @@ class BoardArray:
     def __init__(self, copies, board):
         self.boards = [board] * copies  # np.full(copies, board, dtype=np.int64)
         self.scores = [0] * copies  # np.zeros(copies, dtype=np.int32)
-
-    def tensor(self, device='cpu'):
-        """Converts board array to pytorch tensor"""
-        data = []
-        tmp = self.boards.copy()
-        for _ in range(16):
-            data.append(tmp & 0xF)
-            tmp >>= 4
-        return torch.tensor(data, dtype=torch.float32, device=device).transpose(0, 1)
 
     def move_batch(self, move_list):
         """Perform moves on a batch of games
@@ -297,7 +301,6 @@ def play_fixed_batch(number):
         if dead_s:
             # print('{} died on move {}'.format(len(dead_s), count))
             scores.extend(dead_s)
-    # print('Game Over')
     return scores
 
 

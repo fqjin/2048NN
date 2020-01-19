@@ -1,7 +1,7 @@
 from board import *
 
 
-def mcts_fixed_batch(origin, number=10):
+def mcts_fixed(origin, number=10):
     """Run batch tree search using a fixed move order
 
     A BoardArray is made for each possible move
@@ -51,7 +51,7 @@ def mcts_fixed_moves(origin, number=10):
     """
     result = []
     for i in range(4):
-        board, score, moved = move(origin, i)
+        board, _, moved = move(origin, i)
         if moved:
             array = BoardArray(number, board)
             array.boards = [generate_tile(b) for b in array.boards]
@@ -66,7 +66,7 @@ def mcts_fixed_moves(origin, number=10):
                         break
                 count += 1
         else:
-            result.append(0)
+            result.append(-1)
     return result
 
 
@@ -86,7 +86,7 @@ def mcts_fixed_min(origin, number=10):
     """
     result = []
     for i in range(4):
-        board, score, moved = move(origin, i)
+        board, _, moved = move(origin, i)
         if moved:
             array = BoardArray(number, board)
             array.boards = [generate_tile(b) for b in array.boards]
@@ -98,7 +98,7 @@ def mcts_fixed_min(origin, number=10):
                     break
                 count += 1
         else:
-            result.append(0)
+            result.append(-1)
     return result
 
 
@@ -112,7 +112,7 @@ def play_mcts_fixed(board=None, number=10, press_enter=False, mode=0):
             Defaults to 10
         press_enter (bool)
         mode:
-            0: mcts_fixed_batch
+            0: mcts_fixed
             1: mcts_fixed_moves
             2: mcts_fixed_min
     """
@@ -120,30 +120,28 @@ def play_mcts_fixed(board=None, number=10, press_enter=False, mode=0):
         board = generate_init_tiles()
     score = 0
     count = 0
-    # draw(board, score)
+    if press_enter:
+        draw(board, score)
     if mode == 0:
-        mcts_fn = mcts_fixed_batch
+        mcts_fn = mcts_fixed
     elif mode == 1:
         mcts_fn = mcts_fixed_moves
     elif mode == 2:
         mcts_fn = mcts_fixed_min
     while True:
-        # if press_enter and input() == 'q':
-        #     break
+        if press_enter and input() == 'q':
+            break
         result = mcts_fn(board, number)
-        # os.system(CLEAR)
-        for i in np.argsort(result)[::-1]:
-            f, s, m = move(board, i)
-            if m:
-                board = generate_tile(f)
-                score += s
-                count += 1
-                # print(ARROWS[i])
-                # print(result)
-                # draw(board, score)
-                break
-        else:
-            # if not verbose:
-            #     draw(board, score)
-            # print('Game Over')
-            return board, score, count
+        i = np.argsort(result)[-1]
+        f, s, m = move(board, i)
+        if not m:  # first argsort move is legal if any move is legal
+            break
+        board = generate_tile(f)
+        score += s
+        count += 1
+        if press_enter:
+            os.system(CLEAR)
+            print(ARROWS[i])
+            print(result)
+            draw(board, score)
+    return board, score, count
