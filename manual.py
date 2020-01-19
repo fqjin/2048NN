@@ -1,8 +1,8 @@
 import curses  # pip install windows-curses
-from board import Board, SIZE_SQRD
+from board import *
 
 
-def play_manual(game=None):
+def play_manual(board=None):
     """Play 2048 manually with the arrow keys
 
     Args (optional):
@@ -16,9 +16,10 @@ def play_manual(game=None):
 
     try:
         # draw_curses function with screen.addstr not needed
-        if not game:
-            game = Board(device='cpu', gen=True, draw=False)
-            curses_draw(game, screen)
+        if not board:
+            board = generate_init_tiles()
+        score = 0
+        curses_draw(screen, board, score)
         while True:
             char = screen.getch()
             i = -1
@@ -28,9 +29,11 @@ def play_manual(game=None):
             elif char == curses.KEY_RIGHT:i = 2
             elif char == curses.KEY_DOWN: i = 3
             if i != -1:
-                if game.move(i):
-                    game.generate_tile()
-                    curses_draw(game, screen)
+                f, s, m = move(board, i)
+                if m:
+                    board = generate_tile(f)
+                    score += s
+                    curses_draw(screen, board, score)
 
     finally:  # cleanup curses
         curses.nocbreak()
@@ -38,14 +41,18 @@ def play_manual(game=None):
         curses.echo()
         curses.endwin()
         print('Game Over')
+        print('Score: {}'.format(score))
 
 
-def curses_draw(game, screen):
+def curses_draw(screen, x, score):
     """Draw function for curses"""
     screen.clear()
-    expo = 2**game.board.float()
-    screen.addstr(str(expo.cpu().numpy()).replace('1.', ' .', SIZE_SQRD))
-    screen.addstr('\n Score : {}'.format(game.score))
+    tiles = get_tiles(x)
+    expo = np.power(2, tiles)
+    expo = expo.reshape(4, 4)
+    expo = str(expo)
+    screen.addstr(expo.replace('1 ', '. ', 12).replace('1]', '.]', 4))
+    screen.addstr('\n Score : {}'.format(score))
     screen.refresh()
 
 
