@@ -54,12 +54,13 @@ if __name__ == '__main__':
     from network import DenseNet
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-    name = '20200119/20_200_epox60_lr0.01_e59'
-    m = DenseNet(channels=32, blocks=5)
-    m.load_state_dict(torch.load('models/{}.pt'.format(name), map_location=device))
-    m.to(device)
-    t = time()
-    print(eval_nn(m, name, number=100, device=device))
-    t = time() - t
-    print('{0:.3f} seconds'.format(t))
-    print('-'*10)
+    for name in ['20200121/20_200_c64b5_p20_bs2048lr0.01d0.0_s0_e24',
+                 '20200121/20_200_c64b5_p20_bs2048lr0.01d0.0_s0_e45x']:
+        m = DenseNet(channels=64, blocks=5)
+        m.load_state_dict(torch.load('models/{}.pt'.format(name), map_location=device))
+        m.to(device)
+        t = time()
+        print(eval_nn(m, name, number=5000, device=device))
+        t = time() - t
+        print('{0:.3f} seconds'.format(t))
+        print('-'*10)
