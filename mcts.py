@@ -18,10 +18,9 @@ def mcts_fixed(origin, number=10):
     """
     result = []
     for i in range(4):
-        board, s, moved = move(origin, i)
-        if moved:
-            array = BoardArray(number, board)
-            array.boards = [generate_tile(b) for b in array.boards]
+        b, s, m = move(origin, i)
+        if m:
+            array = BoardArray([generate_tile(b) for _ in range(number)])
             scores = []
             while array.boards:
                 dead_s = array.move_batch((0, 1, 3, 2))
@@ -51,10 +50,9 @@ def mcts_fixed_moves(origin, number=10):
     """
     result = []
     for i in range(4):
-        board, _, moved = move(origin, i)
-        if moved:
-            array = BoardArray(number, board)
-            array.boards = [generate_tile(b) for b in array.boards]
+        b, _, m = move(origin, i)
+        if m:
+            array = BoardArray([generate_tile(b) for _ in range(number)])
             count = 1
             dead = 0
             while array.boards:
@@ -86,10 +84,9 @@ def mcts_fixed_min(origin, number=10):
     """
     result = []
     for i in range(4):
-        board, _, moved = move(origin, i)
-        if moved:
-            array = BoardArray(number, board)
-            array.boards = [generate_tile(b) for b in array.boards]
+        b, _, m = move(origin, i)
+        if m:
+            array = BoardArray([generate_tile(b) for _ in range(number)])
             count = 1
             while array.boards:
                 dead_s = array.move_batch((0, 1, 3, 2))

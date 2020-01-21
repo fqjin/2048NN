@@ -233,16 +233,15 @@ class BoardArray:
     Note: int is immutable, so functions do not modify arguments
 
     Args:
-        copies: number of copies in array
-        board (int64): starting board
+        boards: list of starting boards
 
     Attributes:
         boards: list of boards
         scores: list of scores
     """
-    def __init__(self, copies, board):
-        self.boards = [board] * copies  # np.full(copies, board, dtype=np.int64)
-        self.scores = [0] * copies  # np.zeros(copies, dtype=np.int32)
+    def __init__(self, boards):
+        self.boards = boards
+        self.scores = [0] * len(boards)
 
     def move_batch(self, move_list):
         """Perform moves on a batch of games
@@ -278,8 +277,7 @@ class BoardArray:
 
 
 def play_fixed_batch(number):
-    array = BoardArray(number, 0)
-    array.boards = [generate_init_tiles() for _ in range(number)]
+    array = BoardArray([generate_init_tiles() for _ in range(number)])
     scores = []
     while array.boards:
         dead_s = array.move_batch((0, 1, 3, 2))

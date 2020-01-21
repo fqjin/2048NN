@@ -4,12 +4,7 @@ from torch.utils.data import Dataset
 
 
 class GameDataset(Dataset):
-    def __init__(self, gamepath, start, end, device='cpu', augment=False):
-        # self.gameptah = gamepath
-        # self.start = start
-        # self.end = end
-        # self.device = device
-        # self.augment = augment
+    def __init__(self, gamepath, start, end, device='cpu'):
         self.boards = []
         self.results = []
         for i in range(start, end):
@@ -27,6 +22,7 @@ class GameDataset(Dataset):
         self.results = torch.tensor(self.results,
                                     dtype=torch.float32,
                                     device=device)
+        self.results = torch.softmax(self.results, dim=1)
 
     def __len__(self):
         return self.results.size(0)
