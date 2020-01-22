@@ -90,15 +90,15 @@ def main(args):
         mean_ls, max_s, mean_m = eval_nn(m, number=200, device=device)
         log_scores.append(mean_ls)
         print(mean_ls, max_s, mean_m)
+        timer += 1
         if mean_ls >= best:
+            print('** Best')
             best = mean_ls
             timer = 0
             torch.save(m.state_dict(), 'models/'+logname+'_best.pt')
-        elif timer < stop:
-            timer += 1
-        else:
+        elif timer >= stop:
             print('Ran out of patience')
-            torch.save(m.state_dict(), 'models/'+logname+'_e{epoch}.pt'.format(epoch))
+            # torch.save(m.state_dict(), 'models/'+logname+f'_e{args.epoch}.pt')
             break
 
     np.savez('logs/'+logname,
