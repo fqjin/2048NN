@@ -1,139 +1,50 @@
-import os
-import numpy as np
-import torch
-from board import Board, CLEAR, ARROWS
+from board import *
 
 
-def mcts_nn(model, origin, number=10):
+def mcts_nn(model, origin, number=10, device='cpu'):
     """Run tree search with pytorch model making lines.
     Batch implementation for efficiency.
 
     Args:
         model: pytorch model to predict moves
-        origin (Board): the starting game state
+        origin (int64): the starting game state
         number (int): # of lines to try for each move.
             Defaults to 10
+        device: default 'cpu'
 
     Returns:
-        list: score increase for each move [Left, Up, Right, Down]
-
+        list: log mean score for each move [Left, Up, Right, Down]
     """
-    games = []
-    result = np.zeros(4, dtype=np.float32)
+    result = []
     for i in range(4):
-        temp = origin.copy()
-        if temp.move(i):
-            games.extend([temp.copy() for _ in range(number)])
+        b, s, m = move(origin, i)
+        if m:
+            array = BoardArray([generate_tile(b) for _ in range(number)])
+            scores = []
+            while array.boards:
+                b = np.array(array.boards, dtype=np.uint64)
+                data = []
+                for _ in range(16):
+                    data.append(b & 0xF)
+                    b >>= 4
+                b = torch.tensor(data,
+                                 dtype=torch.float32,
+                                 device=device).transpose(0, 1)
+                b = [b == i for i in range(16)]
+                b = torch.stack(b, dim=1).float()
+                preds = model(b.view(-1, 16, 4, 4))
+                preds = torch.argsort(preds.cpu(), dim=1, descending=True)
+                dead_s = array.move_batch(preds)
+                if dead_s:
+                    scores.extend(dead_s)
+            scores = np.array(scores)
+            result.append(np.mean(np.log10(scores+s+1)))
         else:
-            result[i] = -1
-    if not games:
-        return result
-    Board.generate_tile_batch(games)
-    notdead = games.copy()
-
-    model.eval()
-    with torch.no_grad():
-        while True:
-            for i in range(4):
-                if i == 0:
-                    subgames = notdead
-                    boards = [g.board for g in subgames]
-                    preds = model.forward(torch.stack(boards).cuda().float().unsqueeze(1))
-                    preds = torch.argsort(preds.cpu(), dim=1, descending=True)
-                    # TODO: Convert preds to List of ints
-                    for g, p in zip(subgames, preds):
-                        g.pred = p
-                    moves = preds[:, i]
-                else:
-                    subgames = [g for g in notdead if not g.moved]
-                    moves = [g.pred[i] for g in subgames]
-                Board.move_batch(subgames, moves)
-            notdead = [g for g in notdead if g.moved]
-            if not notdead:
-                break
-            Board.generate_tile_batch(notdead)
-
-    index = 0
-    scores = np.asarray([g.score for g in games])
-    scores -= origin.score
-    scores = np.log10(scores + 1)  # log conversion shown to help
-    for i in range(4):
-        if not result[i]:
-            result[i] = np.mean(scores[index:index+number])
-            index += number
+            result.append(-1)
     return result
 
 
-def mcts_nn_min(model, origin, number=10):
-    """Run batch tree search with pytorch model making lines.
-    # of moves until the first dead line is used as metric.
-    Search is terminated upon first dead line.
-
-    Args:
-        model: pytorch model to predict moves
-        origin (Board): the starting game state
-        number (int): # of lines to try for each move.
-            Defaults to 10
-
-    Returns:
-        list: score increase for each move [Left, Up, Right, Down]
-
-    """
-    games = []
-    indices = []
-    result = np.zeros(4, dtype=np.float32)
-    for i in range(4):
-        temp = origin.copy()
-        temp.score = 0
-        if temp.move(i):
-            games.extend([temp.copy() for _ in range(number)])
-            indices.append(i)
-        else:
-            result[i] = -1
-    if not games:
-        return result
-    Board.generate_tile_batch(games)
-
-    counter = 0
-    model.eval()
-    with torch.no_grad():
-        while True:
-            for i in range(4):
-                if i == 0:
-                    subgames = games
-                    boards = [g.board for g in subgames]
-                    preds = model.forward(torch.stack(boards).cuda().float().unsqueeze(1))
-                    # preds = torch.randn((len(boards), 4))
-                    preds = torch.argsort(preds.cpu(), dim=1, descending=True)
-                    for g, p in zip(subgames, preds):
-                        g.pred = p
-                    moves = preds[:, i]
-                else:
-                    subgames = [g for g in games if not g.moved]
-                    moves = [g.pred[i] for g in subgames]
-                Board.move_batch(subgames, moves)
-
-            moved = [g.moved for g in games]
-            for i in range(len(indices)):
-                if 0 in moved[number * i:number * (i + 1)]:
-                    result[indices[i]] = counter
-                    indices[i] = None
-            newgames = []
-            newindices = []
-            for i, idx in enumerate(indices):
-                if idx is not None:
-                    newgames.extend(games[number * i:number * (i + 1)])
-                    newindices.append(idx)
-            games, indices = newgames, newindices
-            if not games:
-                break
-            Board.generate_tile_batch(games)
-            counter += 1
-
-    return result
-
-
-def play_nn(model, game, press_enter=False, device='cpu', verbose=False):
+def play_nn(model, game=None, press_enter=False, device='cpu', verbose=False):
     """Play through a game using a pytorch NN.
 
     Moves are selected by the pytorch model.
@@ -141,8 +52,8 @@ def play_nn(model, game, press_enter=False, device='cpu', verbose=False):
 
     Args:
         model: pytorch model to predict moves
-        game (Board): the starting game state. If `None`
-            is passed, will generate a new Board.
+        game (int64): the starting game state.
+            Default will generate a new Board.
         press_enter (bool): Whether keyboard press is
             required for each step. Defaults to False.
             Type 'q' to quit when press_enter is True.
@@ -151,27 +62,34 @@ def play_nn(model, game, press_enter=False, device='cpu', verbose=False):
             Defaults to False
 
     """
-    if not game:
-        game = Board(gen=True, draw=True, device=device)
+    if game is None:
+        game = generate_init_tiles()
+    score = 0
+    count = 0
+    if press_enter:
+        draw(game, score)
     model.eval()
     with torch.no_grad():
-        counter = 0
         while True:
             if press_enter and input() == 'q':
                 break
-            pred = model.forward(game.board.float().cuda()[None, None, ...])[0]
-            for i in torch.argsort(pred, descending=True):
-                if game.move(i):
-                    game.generate_tile()
-                    if verbose:
-                        os.system(CLEAR)
-                        print(pred)
+            b = torch.tensor([get_tiles(game)],
+                             dtype=torch.float32,
+                             device=device)
+            b = [b == i for i in range(16)]
+            b = torch.stack(b, dim=1).float()
+            output = model(b.view(-1, 16, 4, 4))
+            preds = torch.argsort(output, dim=1, descending=True)
+            for i in preds[0]:
+                f, s, m = move(game, i.item())
+                if m:
+                    game = generate_tile(f)
+                    score += s
+                    count += 1
+                    if press_enter:
+                        print(output)
                         print(ARROWS[i.item()])
-                        game.draw()
-                    counter += 1
+                        draw(game, score)
                     break
             else:
-                print(game.score)
-                print('Moves: {}'.format(counter))
-                print('Game Over')
-                break
+                return game, score, count
