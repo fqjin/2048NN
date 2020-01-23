@@ -5,8 +5,8 @@ import torch
 from tqdm import tqdm
 from torch import nn
 from torch.utils.data import DataLoader
-from game_dataset import GameDataset
-from network import DenseNet
+from game_dataset import OneHotConvGameDataset
+from network import ConvNet
 from eval_nn import eval_nn
 
 
@@ -52,12 +52,12 @@ def main(args):
 
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     print('Using {}'.format(device))
-    train_set = GameDataset(args.path, args.t_tuple[0], args.t_tuple[1], device)
-    valid_set = GameDataset(args.path, args.v_tuple[0], args.v_tuple[1], device)
+    train_set = OneHotConvGameDataset(args.path, args.t_tuple[0], args.t_tuple[1], device)
+    valid_set = OneHotConvGameDataset(args.path, args.v_tuple[0], args.v_tuple[1], device)
     train_dat = DataLoader(train_set, batch_size=args.batch_size, shuffle=True)
     valid_dat = DataLoader(valid_set, batch_size=args.batch_size, shuffle=False)
 
-    m = DenseNet(channels=args.channels, blocks=args.blocks)
+    m = ConvNet(channels=args.channels, blocks=args.blocks)
     if args.pretrained:
         m.load_state_dict(torch.load('models/{}.pt'.format(args.pretrained), map_location=device))
         print('Loaded ' + args.pretrained)
@@ -98,8 +98,11 @@ def main(args):
             torch.save(m.state_dict(), 'models/'+logname+'_best.pt')
         elif timer >= stop:
             print('Ran out of patience')
+            print(f'Best score: {best}')
             # torch.save(m.state_dict(), 'models/'+logname+f'_e{args.epoch}.pt')
             break
+        else:
+            print(f'{stop - timer} epochs remaining')
 
     np.savez('logs/'+logname,
              t_loss=t_loss,

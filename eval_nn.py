@@ -32,13 +32,18 @@ def eval_nn(model, name=None, origin=None, number=100, device='cpu'):
             b = torch.tensor(data,
                              dtype=torch.float32,
                              device=device).transpose(0, 1)
-            preds = model(b)
+            # TODO: more efficient one-hot conversion?
+            b = [b == i for i in range(16)]
+            b = torch.stack(b, dim=1).float()
+            preds = model(b.view(-1, 16, 4, 4))
             preds = torch.argsort(preds.cpu(), dim=1, descending=True)
             dead_s = games.move_batch(preds)
             if dead_s:
                 scores.extend(dead_s)
                 moves.extend([count]*len(dead_s))
             count += 1
+            if count % 1000 == 0:
+                print(count)
     scores = np.array(scores)
 
     if name is None:
@@ -51,12 +56,19 @@ def eval_nn(model, name=None, origin=None, number=100, device='cpu'):
 
 if __name__ == '__main__':
     from time import time
-    from network import DenseNet
+    from network import ConvNet
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    print(f'Using {device}')
 
-    for name in ['20200121/20_200_c64b5_p20_bs2048lr0.01d0.0_s0_e24',
-                 '20200121/20_200_c64b5_p20_bs2048lr0.01d0.0_s0_e45x']:
-        m = DenseNet(channels=64, blocks=5)
+    for name, params in zip(
+        ['20200122/onehot_20_200_c64b5_p20_bs2048lr0.01d0.0_s0_best',
+         '20200122/onehot_20_200_c128b5_p20_bs2048lr0.01d0.0_s0_best',
+         ],
+        [{'channels': 64, 'blocks': 5},
+         {'channels': 128, 'blocks': 5},
+         ]
+    ):
+        m = ConvNet(**params)
         m.load_state_dict(torch.load('models/{}.pt'.format(name), map_location=device))
         m.to(device)
         t = time()

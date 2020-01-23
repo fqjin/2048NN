@@ -29,3 +29,17 @@ class GameDataset(Dataset):
 
     def __getitem__(self, index):
         return self.boards[index], self.results[index]
+
+
+class ConvGameDataset(GameDataset):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.boards = self.boards.view(-1, 1, 4, 4)
+
+
+class OneHotConvGameDataset(GameDataset):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        onehot = [self.boards == i for i in range(16)]
+        onehot = torch.stack(onehot, dim=1)
+        self.boards = onehot.float().view(-1, 16, 4, 4)
