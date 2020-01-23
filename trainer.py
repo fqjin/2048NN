@@ -21,7 +21,7 @@ def train_loop(model, data, loss_fn, optimizer):
         loss.backward()
         optimizer.step()
     running_loss /= len(data)
-    print('Train Loss: {:.3f}'.format(running_loss))
+    print('Train mLoss: {:.3f}'.format(1e3*running_loss))
     return running_loss
 
 
@@ -34,7 +34,7 @@ def valid_loop(model, data, loss_fn):
             loss = loss_fn(pred, y)
             running_loss += loss.data.item()
     running_loss /= len(data)
-    print('Valid Loss: {:.3f}'.format(running_loss))
+    print('Valid mLoss: {:.3f}'.format(1e3*running_loss))
     return running_loss
 
 

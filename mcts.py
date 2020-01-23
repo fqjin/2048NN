@@ -23,7 +23,8 @@ def mcts_fixed(origin, number=10):
             array = BoardArray([generate_tile(b) for _ in range(number)])
             scores = []
             while array.boards:
-                dead_s = array.move_batch((0, 1, 3, 2))
+                move_list = [(0, 1, 3, 2)] * len(array.boards)
+                dead_s = array.move_batch(move_list)
                 if dead_s:
                     scores.extend(dead_s)
             scores = np.array(scores)
@@ -56,7 +57,8 @@ def mcts_fixed_moves(origin, number=10):
             count = 1
             dead = 0
             while array.boards:
-                dead_s = array.move_batch((0, 1, 3, 2))
+                move_list = [(0, 1, 3, 2)] * len(array.boards)
+                dead_s = array.move_batch(move_list)
                 if dead_s:
                     dead += len(dead_s)
                     if dead >= number // 2:
@@ -89,7 +91,8 @@ def mcts_fixed_min(origin, number=10):
             array = BoardArray([generate_tile(b) for _ in range(number)])
             count = 1
             while array.boards:
-                dead_s = array.move_batch((0, 1, 3, 2))
+                move_list = [(0, 1, 3, 2)] * len(array.boards)
+                dead_s = array.move_batch(move_list)
                 if dead_s:
                     result.append(count)
                     break

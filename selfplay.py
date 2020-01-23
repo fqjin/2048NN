@@ -126,11 +126,11 @@ if __name__ == '__main__':
     torch.manual_seed(seed)
     name = str(seed).zfill(5)
 
-    m_name = '20200122/onehot_20_200_c128b5_p20_bs2048lr0.01d0.0_s0_best'
+    m_name = '20200123/onehot_20_200_c128b5_p20_bs2048lr0.01d0.0_s2_best'
     print('Using model: {}'.format(m_name))
-    m = ConvNet(channels=128, blocks=5)
-    m.load_state_dict(torch.load('models/{}.pt'.format(m_name)))
-    m.to('cuda')
+    model = ConvNet(channels=128, blocks=5)
+    model.load_state_dict(torch.load('models/{}.pt'.format(m_name)))
+    model.to('cuda')
 
     # selfplay_fixed(name, number=50, verbose=args.verbose)
-    selfplay(name, m, number=50, verbose=args.verbose)
+    selfplay(name, model, number=50, verbose=args.verbose)

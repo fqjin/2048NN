@@ -243,23 +243,22 @@ class BoardArray:
         self.boards = boards
         self.scores = [0] * len(boards)
 
-    def move_batch(self, move_list):
+    def move_batch(self, move_list, get_boards=False):
         """Perform moves on a batch of games
 
         Args:
-            move_list: ordered direction indices (0 to 3) for
-                each board in self.boards. If a tuple is given,
-                it must be length 4 and is used for every board.
+            move_list: list of ordered direction indices (0 to 3)
+                for each board in self.boards
+            get_boards: whether to return boards with scores
 
         Returns:
-            dead boards, dead scores
+            dead scores
+            OR
+            dead scores, dead boards
         """
-        if isinstance(move_list, tuple):
-            move_list = [move_list] * len(self.boards)
-        # elif len(move_list) != len(self.boards):
-        #     raise ValueError('move_list not len boards')
         new_b = []
         new_s = []
+        dead_b = []
         dead_s = []
         for board, score, moves in zip(self.boards, self.scores, move_list):
             for i in moves:
@@ -269,10 +268,12 @@ class BoardArray:
                     new_s.append(score + s)
                     break
             else:
-                # dead_b.append(board)
+                dead_b.append(board)
                 dead_s.append(score)
         self.boards = new_b
         self.scores = new_s
+        if get_boards:
+            return dead_s, dead_b
         return dead_s
 
 
@@ -280,7 +281,8 @@ def play_fixed_batch(number):
     array = BoardArray([generate_init_tiles() for _ in range(number)])
     scores = []
     while array.boards:
-        dead_s = array.move_batch((0, 1, 3, 2))
+        move_list = [(0, 1, 3, 2)] * len(array.boards)
+        dead_s = array.move_batch(move_list)
         if dead_s:
             # print('{} died on move {}'.format(len(dead_s), count))
             scores.extend(dead_s)
