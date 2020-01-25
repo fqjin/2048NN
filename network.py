@@ -2,17 +2,15 @@ import torch
 import torch.nn as nn
 
 
-class TestNet(nn.Module):
+class FixedNet(nn.Module):
     def __init__(self):
         super().__init__()
-        self.layer = nn.Linear(16, 4)
-        self.log_soft = nn.LogSoftmax(dim=1)
+        self.output = torch.tensor([3.0, 2.0, 0.0, 1.0], dtype=torch.float32)
+        self.output = nn.LogSoftmax(dim=0)(self.output)
 
     def forward(self, x):
-        x = x.view(-1, 16)
-        x = self.layer(x)
-        x = self.log_soft(x)
-        return x
+        b = x.size(0)
+        return self.output.repeat(b, 1)
 
 
 class DenseNet(nn.Module):
@@ -90,7 +88,8 @@ class ConvNet(nn.Module):
 
 
 if __name__ == '__main__':
-    for m in [DenseNet(channels=64, blocks=5),
+    for m in [FixedNet(),
+              DenseNet(channels=64, blocks=5),
               ConvNet(channels=128, blocks=5)]:
         params = sum(p.numel() for p in m.parameters())
         print(params)

@@ -1,7 +1,7 @@
 from board import *
 
 
-def eval_nn(model, name=None, origin=None, number=100, device='cpu'):
+def eval_nn(model, name=None, origin=None, number=100, device='cpu', verbose=False):
     """Simulate games using a model
 
     Args:
@@ -12,6 +12,7 @@ def eval_nn(model, name=None, origin=None, number=100, device='cpu'):
         number (int): # of lines
             Defaults to 100
         device: torch device
+        verbose:
     """
     if origin is None:
         games = BoardArray([generate_init_tiles() for _ in range(number)])
@@ -44,7 +45,7 @@ def eval_nn(model, name=None, origin=None, number=100, device='cpu'):
                 dead_boards.extend(dead_b)
                 moves.extend([count]*len(dead_s))
             count += 1
-            if count % 100 == 0:
+            if verbose and count % 100 == 0:
                 print(count)
     scores = np.array(scores)
     dead_boards = np.asarray(dead_boards, dtype=np.uint64)
@@ -69,7 +70,7 @@ if __name__ == '__main__':
         m.load_state_dict(torch.load('models/{}.pt'.format(name), map_location=device))
         m.to(device)
         t = time()
-        print(eval_nn(m, name, number=500, device=device))
+        print(eval_nn(m, name, number=500, device=device, verbose=True))
         t = time() - t
         print('{0:.3f} seconds'.format(t))
         print('-'*10)

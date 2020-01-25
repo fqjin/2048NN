@@ -93,3 +93,31 @@ def play_nn(model, game=None, press_enter=False, device='cpu', verbose=False):
                     break
             else:
                 return game, score, count
+
+
+if __name__ == '__main__':
+    from time import time
+    from network import *
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    print(f'Using {device}')
+
+    # Takes 0.855 seconds
+    # m = FixedNet()
+
+    # Takes 10.26 seconds (exactly 12x fixed)
+    # m = ConvNet(channels=128, blocks=5)
+    # name = '20200123/onehot_20_200_c128b5_p20_bs2048lr0.01d0.0_s2_best'
+
+    # Takes 2.184 seconds (~ 2.5x fixed)
+    m = DenseNet(channels=64, blocks=5)
+    name = '20200121/20_200_c64b5_p20_bs2048lr0.01d0.0_s4_best'
+
+    print(name)
+    m.load_state_dict(torch.load('models/{}.pt'.format(name), map_location=device))
+
+    m.to(device)
+    t = time()
+    print(mcts_nn(m, generate_init_tiles(), device=device))
+    t = time() - t
+    print('{0:.3f} seconds'.format(t))
+    print('-' * 10)
