@@ -85,22 +85,24 @@ def selfplay(name, model, board=None, number=10, device='cuda', verbose=False):
 
     boards = []
     results = []
-    while True:
-        result = mcts_nn(model, board, number, device)
-        i = np.argmax(result)
-        f, s, m = move(board, i)
-        if not m:
-            break
-        boards.append(board)
-        results.append(result)
+    model.eval()
+    with torch.no_grad():
+        while True:
+            result = mcts_nn(model, board, number, device)
+            i = np.argmax(result)
+            f, s, m = move(board, i)
+            if not m:
+                break
+            boards.append(board)
+            results.append(result)
 
-        board = generate_tile(f)
-        score += s
-        if verbose:
-            os.system(CLEAR)
-            print(ARROWS[i])
-            print('[{:.2f} {:.2f} {:.2f} {:.2f}]'.format(*result))
-            draw(board, score)
+            board = generate_tile(f)
+            score += s
+            if verbose:
+                os.system(CLEAR)
+                print(ARROWS[i])
+                print('[{:.2f} {:.2f} {:.2f} {:.2f}]'.format(*result))
+                draw(board, score)
     print('Score {}'.format(score))
     print('{} moves'.format(len(boards)))
     np.savez('selfplay/' + name,

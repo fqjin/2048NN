@@ -87,10 +87,66 @@ class ConvNet(nn.Module):
         return x
 
 
+class SepConvNet(nn.Module):
+    """Lighter weight convnet
+
+    Args:
+        channels: Defaults to 128
+        blocks: Defaults to 5
+        out_c: Defaults to 4
+    """
+    def __init__(self, channels=128, blocks=5, out_c=4):
+        super().__init__()
+        self.relu = nn.ReLU(inplace=True)
+        self.in_block = nn.Sequential(
+            nn.Conv2d(16, channels, 1, padding=0, bias=False),
+            nn.BatchNorm2d(channels),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(channels, channels, 3, groups=channels, padding=1, bias=False),
+            nn.BatchNorm2d(channels),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(channels, channels//4, 1, padding=0, bias=False),
+            nn.BatchNorm2d(channels//4),
+            nn.ReLU(inplace=True),
+        )
+        self.blocks = nn.ModuleList([
+            nn.Sequential(
+                nn.Conv2d(channels//4, channels, 1, padding=0, bias=False),
+                nn.BatchNorm2d(channels),
+                nn.ReLU(inplace=True),
+                nn.Conv2d(channels, channels, 3, groups=channels, padding=1, bias=False),
+                nn.BatchNorm2d(channels),
+                nn.ReLU(inplace=True),
+                nn.Conv2d(channels, channels//4, 1, padding=0, bias=False),
+                nn.BatchNorm2d(channels//4),
+            ) for _ in range(blocks)
+        ])
+        self.out_block = nn.Sequential(
+            nn.Conv2d(channels//4, out_c, 1, padding=0, bias=False),
+            nn.BatchNorm2d(out_c),
+            nn.ReLU(inplace=True)
+        )
+        self.out_size = out_c * 16
+        self.policy = nn.Linear(self.out_size, 4)
+        self.soft = nn.LogSoftmax(dim=1)
+
+    def forward(self, x):
+        x = self.in_block(x)
+        for block in self.blocks:
+            x = x + block(x)
+            x = self.relu(x)
+        x = self.out_block(x)
+        x = x.view(-1, self.out_size)
+        x = self.policy(x)
+        x = self.soft(x)
+        return x
+
+
 if __name__ == '__main__':
-    for m in [FixedNet(),
-              DenseNet(channels=64, blocks=5),
-              ConvNet(channels=128, blocks=5)]:
+    for m in [FixedNet(),  # 0
+              DenseNet(channels=64, blocks=5),  # 22148
+              ConvNet(channels=128, blocks=5),  # 1496588
+              SepConvNet(channels=128, blocks=5),  # 59404
+              ]:
         params = sum(p.numel() for p in m.parameters())
         print(params)
-        # 22148, 1496588
