@@ -87,7 +87,7 @@ class ConvNet(nn.Module):
         return x
 
 
-class SepConvNet(nn.Module):
+class FastNet(nn.Module):
     """Lighter weight convnet
 
     Args:
@@ -95,34 +95,23 @@ class SepConvNet(nn.Module):
         blocks: Defaults to 5
         out_c: Defaults to 4
     """
-    def __init__(self, channels=128, blocks=5, out_c=4):
+    def __init__(self, channels=16, blocks=5, out_c=4):
         super().__init__()
         self.relu = nn.ReLU(inplace=True)
         self.in_block = nn.Sequential(
-            nn.Conv2d(16, channels, 1, padding=0, bias=False),
+            nn.Conv2d(16, channels, 3, padding=1, bias=False),
             nn.BatchNorm2d(channels),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(channels, channels, 3, groups=channels, padding=1, bias=False),
-            nn.BatchNorm2d(channels),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(channels, channels//4, 1, padding=0, bias=False),
-            nn.BatchNorm2d(channels//4),
-            nn.ReLU(inplace=True),
+            nn.ReLU(inplace=True)
         )
         self.blocks = nn.ModuleList([
             nn.Sequential(
-                nn.Conv2d(channels//4, channels, 1, padding=0, bias=False),
-                nn.BatchNorm2d(channels),
-                nn.ReLU(inplace=True),
-                nn.Conv2d(channels, channels, 3, groups=channels, padding=1, bias=False),
-                nn.BatchNorm2d(channels),
-                nn.ReLU(inplace=True),
-                nn.Conv2d(channels, channels//4, 1, padding=0, bias=False),
-                nn.BatchNorm2d(channels//4),
+                nn.Conv2d(channels, channels, 3, padding=1, bias=False),
+                nn.BatchNorm2d(channels)
             ) for _ in range(blocks)
         ])
         self.out_block = nn.Sequential(
-            nn.Conv2d(channels//4, out_c, 1, padding=0, bias=False),
+            # I use 4 output channels (2 in paper)
+            nn.Conv2d(channels, out_c, 1, padding=0, bias=False),
             nn.BatchNorm2d(out_c),
             nn.ReLU(inplace=True)
         )
@@ -146,7 +135,7 @@ if __name__ == '__main__':
     for m in [FixedNet(),  # 0
               DenseNet(channels=64, blocks=5),  # 22148
               ConvNet(channels=128, blocks=5),  # 1496588
-              SepConvNet(channels=128, blocks=5),  # 59404
+              FastNet(channels=128, blocks=4),  # 610316
               ]:
         params = sum(p.numel() for p in m.parameters())
         print(params)

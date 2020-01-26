@@ -3,7 +3,7 @@ from time import time
 from board import *
 from mcts import mcts_fixed
 from mcts_nn import mcts_nn
-from network import ConvNet
+from network import FastNet
 
 
 def selfplay_fixed(name, board=None, number=10, verbose=False):
@@ -126,11 +126,12 @@ if __name__ == '__main__':
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
+    torch.backends.cudnn.benchmark = True
     name = str(seed).zfill(5)
 
-    m_name = '20200123/onehot_20_200_c128b5_p20_bs2048lr0.01d0.0_s2_best'
+    m_name = '20200125/fastnet_20_200_c128b4_p20_bs2048lr0.01d0.0_s0_best'
     print('Using model: {}'.format(m_name))
-    model = ConvNet(channels=128, blocks=5)
+    model = FastNet(channels=128, blocks=4)
     model.load_state_dict(torch.load('models/{}.pt'.format(m_name)))
     model.to('cuda')
 

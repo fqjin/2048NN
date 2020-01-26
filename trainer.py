@@ -6,7 +6,7 @@ from tqdm import tqdm
 from torch import nn
 from torch.utils.data import DataLoader
 from game_dataset import OneHotConvGameDataset
-from network import ConvNet
+from network import ConvNet, FastNet
 from eval_nn import eval_nn
 
 
@@ -50,14 +50,17 @@ def main(args):
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
 
-    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print('Using {}'.format(device))
+    if torch.backends.cudnn.enabled:
+        torch.backends.cudnn.benchmark = True
+
     train_set = OneHotConvGameDataset(args.path, args.t_tuple[0], args.t_tuple[1], device)
     valid_set = OneHotConvGameDataset(args.path, args.v_tuple[0], args.v_tuple[1], device)
     train_dat = DataLoader(train_set, batch_size=args.batch_size, shuffle=True)
     valid_dat = DataLoader(valid_set, batch_size=args.batch_size, shuffle=False)
 
-    m = ConvNet(channels=args.channels, blocks=args.blocks)
+    m = FastNet(channels=args.channels, blocks=args.blocks)
     if args.pretrained:
         m.load_state_dict(torch.load('models/{}.pt'.format(args.pretrained), map_location=device))
         print('Loaded ' + args.pretrained)

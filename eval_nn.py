@@ -60,17 +60,17 @@ def eval_nn(model, name=None, origin=None, number=100, device='cpu', verbose=Fal
 
 if __name__ == '__main__':
     from time import time
-    from network import ConvNet
+    from network import ConvNet, FastNet
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     print(f'Using {device}')
 
-    names = [f'20200123/onehot_20_200_c128b5_p20_bs2048lr0.01d0.0_s{s}_best' for s in range(5)]
+    names = [f'20200125/fastnet_20_200_c128b4_p20_bs2048lr0.01d0.0_s{s}_best' for s in range(5)]
     for name in names:
-        m = ConvNet(**{'channels': 128, 'blocks': 5})
+        m = FastNet(**{'channels': 128, 'blocks': 4})
         m.load_state_dict(torch.load('models/{}.pt'.format(name), map_location=device))
         m.to(device)
         t = time()
-        print(eval_nn(m, name, number=500, device=device, verbose=True))
+        print(eval_nn(m, name, number=5000, device=device, verbose=True))
         t = time() - t
         print('{0:.3f} seconds'.format(t))
         print('-'*10)
