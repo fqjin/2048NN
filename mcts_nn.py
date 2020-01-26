@@ -17,10 +17,10 @@ def mcts_nn(model, origin, number=10, device='cpu'):
     """
     result = []
     for i in range(4):
-        b, s, m = move(origin, i)
+        b, _, m = move(origin, i)
         if m:
             array = BoardArray([generate_tile(b) for _ in range(number)])
-            scores = []
+            count = 1
             while array.boards:
                 b = np.array(array.boards, dtype=np.uint64)
                 data = []
@@ -36,11 +36,11 @@ def mcts_nn(model, origin, number=10, device='cpu'):
                 preds = torch.argsort(preds.cpu(), dim=1, descending=True)
                 dead_s = array.move_batch(preds)
                 if dead_s:
-                    scores.extend(dead_s)
-            scores = np.array(scores)
-            result.append(np.mean(np.log10(scores+s+1)))
+                    result.append(count)
+                    break
+                count += 1
         else:
-            result.append(-1)
+            result.append(0)
     return result
 
 
@@ -104,13 +104,15 @@ if __name__ == '__main__':
 
     # Takes 36.9 sec for 3 runs after 1 run benchmarking
     # Ave score: 4.03
-    # m = ConvNet(channels=128, blocks=5)
-    # name = '20200123/onehot_20_200_c128b5_p20_bs2048lr0.01d0.0_s2_best'
+    # Mean log: 64.6 sec, Min move: 9.95 sec: 6.5x speedup
+    # w/o benchmarking 10.3 vs w/ benchmarking 9.5: 8% savings
+    m = ConvNet(channels=128, blocks=5)
+    name = '20200123/onehot_20_200_c128b5_p20_bs2048lr0.01d0.0_s2_best'
 
     # Takes 22.4 sec for 3 runs after 1 run benchmarking
     # Ave score: 3.90
-    m = FastNet(channels=128, blocks=4)
-    name = '20200125/fastnet_20_200_c128b4_p20_bs2048lr0.01d0.0_s0_best'
+    # m = FastNet(channels=128, blocks=4)
+    # name = '20200125/fastnet_20_200_c128b4_p20_bs2048lr0.01d0.0_s0_best'
 
     print(name)
     m.load_state_dict(torch.load('models/{}.pt'.format(name), map_location=device))
@@ -119,10 +121,10 @@ if __name__ == '__main__':
     m.eval()
     x = [generate_init_tiles() for _ in range(4)]
     with torch.no_grad():
-        print(mcts_nn(m, x[0], number=50, device=device))
+        # print(mcts_nn(m, x[0], number=50, device=device))
         t = time()
-        print(mcts_nn(m, x[1], number=50, device=device))
-        print(mcts_nn(m, x[2], number=50, device=device))
+        # print(mcts_nn(m, x[1], number=50, device=device))
+        # print(mcts_nn(m, x[2], number=50, device=device))
         print(mcts_nn(m, x[3], number=50, device=device))
         t = time() - t
     print('{0:.3f} seconds'.format(t))
