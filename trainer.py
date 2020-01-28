@@ -41,7 +41,7 @@ def valid_loop(model, data, loss_fn):
 def main(args):
     if args.name:
         args.name += '_'
-    logname = f'{args.name}{args.t_tuple[0]}_{args.t_tuple[1]}_' \
+    logname = f'{args.name}{args.t_tuple[0]}_{args.t_tuple[1]}_soft{args.soft}' \
               f'c{args.channels}b{args.blocks}_p{args.patience}_' \
               f'bs{args.batch_size}lr{args.lr}d{args.decay}_s{args.seed}'
     print(logname)
@@ -54,8 +54,8 @@ def main(args):
     print('Using {}'.format(device))
     torch.backends.cudnn.benchmark = True
 
-    train_set = OneHotConvGameDataset(args.path, args.t_tuple[0], args.t_tuple[1], device)
-    valid_set = OneHotConvGameDataset(args.path, args.v_tuple[0], args.v_tuple[1], device)
+    train_set = OneHotConvGameDataset(args.path, args.t_tuple[0], args.t_tuple[1], device, soft=args.soft)
+    valid_set = OneHotConvGameDataset(args.path, args.v_tuple[0], args.v_tuple[1], device, soft=args.soft)
     train_dat = DataLoader(train_set, batch_size=args.batch_size, shuffle=True)
     valid_dat = DataLoader(valid_set, batch_size=args.batch_size, shuffle=False)
 
@@ -130,6 +130,7 @@ if __name__ == '__main__':
     p.add_argument('--batch_size', type=int, default=2048)
     p.add_argument('--lr', type=float, default=0.01)
     p.add_argument('--decay', type=float, default=0.0)
+    p.add_argument('--soft', type=float, default=3.5)
     p.add_argument('--name', type=str, default='',
                    help='Additional prepend output name')
     p.add_argument('--seed', type=int, default=0)

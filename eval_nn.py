@@ -101,7 +101,7 @@ if __name__ == '__main__':
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     print(f'Using {device}')
 
-    names = ['minmove_20_200_c64b3_p10_bs2048lr0.1d0.0_s0_best']
+    names = [f'20200128/20_400_soft3.5c64b3_p10_bs2048lr0.08d0.0_s{s}pre_best' for s in (0,2,3,5)]
     for name in names:
         print(name)
         m = ConvNet(**{'channels': 64, 'blocks': 3})

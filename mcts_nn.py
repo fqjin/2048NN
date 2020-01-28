@@ -104,7 +104,9 @@ if __name__ == '__main__':
     t = time()
     # m = ConvNet(channels=64, blocks=3)
     # name = '20200126/soft3.5_20_200_c64b3_p10_bs2048lr0.08d0.0_s4_best'
-    name = '20200126/soft3.5_s4_jit.pth'
+    # name = '20200128/20_400_soft3.5c64b3_p10_bs2048lr0.08d0.0_s2pre_best'
+    # name = '20200126/soft3.5_s4_jit.pth'
+    name = '20200128/best_s2_jit.pth'
 
     print(name)
     # m.load_state_dict(torch.load('models/{}.pt'.format(name), map_location=device))
@@ -114,6 +116,7 @@ if __name__ == '__main__':
     m = torch.jit.load('models/' + name)
     print(time()-t)
     # Using jit: 10.3  vs 9.1 sec, about 10% speed up
+    # Using jit: 10.4 vs 11.8 sec, about 13% speed up   
     # Loading from jit saves 0.4 seconds compared to tracing each time
 
     x = [generate_init_tiles() for _ in range(4)]

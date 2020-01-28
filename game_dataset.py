@@ -4,7 +4,7 @@ from torch.utils.data import Dataset
 
 
 class GameDataset(Dataset):
-    def __init__(self, gamepath, start, end, device='cpu'):
+    def __init__(self, gamepath, start, end, device='cpu', soft=3.0):
         self.boards = []
         self.results = []
         for i in range(start, end):
@@ -24,7 +24,7 @@ class GameDataset(Dataset):
                                     device=device)
         rescale, _ = torch.max(self.results, dim=1, keepdim=True)
         self.results /= rescale
-        self.results *= 3.5
+        self.results *= soft
         self.results = torch.softmax(self.results, dim=1)
 
     def __len__(self):
