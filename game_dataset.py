@@ -22,6 +22,9 @@ class GameDataset(Dataset):
         self.results = torch.tensor(self.results,
                                     dtype=torch.float32,
                                     device=device)
+        rescale, _ = torch.max(self.results, dim=1, keepdim=True)
+        self.results /= rescale
+        self.results *= 3.5
         self.results = torch.softmax(self.results, dim=1)
 
     def __len__(self):

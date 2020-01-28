@@ -133,9 +133,9 @@ class FastNet(nn.Module):
 
 if __name__ == '__main__':
     for m in [FixedNet(),  # 0
-              DenseNet(channels=64, blocks=5),  # 22148
+              DenseNet(channels=64, blocks=5),  #   22148
               ConvNet(channels=128, blocks=5),  # 1496588
-              FastNet(channels=128, blocks=4),  # 610316
+              ConvNet(channels=64, blocks=3),   #  231820
               ]:
         params = sum(p.numel() for p in m.parameters())
         print(params)

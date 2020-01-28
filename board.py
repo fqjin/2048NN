@@ -276,6 +276,32 @@ class BoardArray:
             return dead_s, dead_b
         return dead_s
 
+    def fast_move_batch(self, move_list):
+        """Fast version of move_batch by returning early
+        May not be a significant speedup, but does reduce compute
+
+        Args:
+            move_list: list of ordered direction indices (0 to 3)
+                for each board in self.boards
+
+        Returns:
+            bool if any died
+        """
+        new_b = []
+        new_s = []
+        for board, score, moves in zip(self.boards, self.scores, move_list):
+            for i in moves:
+                f, s, m = move(board, i)
+                if m:
+                    new_b.append(generate_tile(f))
+                    new_s.append(score + s)
+                    break
+            else:
+                return True
+        self.boards = new_b
+        self.scores = new_s
+        return False
+
 
 def play_fixed_batch(number):
     array = BoardArray([generate_init_tiles() for _ in range(number)])

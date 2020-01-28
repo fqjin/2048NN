@@ -44,7 +44,7 @@ def selfplay_fixed(name, board=None, number=10, verbose=False):
         if verbose:
             os.system(CLEAR)
             print(ARROWS[i])
-            print('[{:.2f} {:.2f} {:.2f} {:.2f}]'.format(*result))
+            print('[{:.1f} {:.1f} {:.1f} {:.1f}]'.format(*result))
             draw(board, score)
     print('Score {}'.format(score))
     print('{} moves'.format(len(boards)))
@@ -100,7 +100,7 @@ def selfplay(name, model, board=None, number=10, device='cuda', verbose=False):
             if verbose:
                 os.system(CLEAR)
                 print(ARROWS[i])
-                print('[{:.2f} {:.2f} {:.2f} {:.2f}]'.format(*result))
+                print('[{:.1f} {:.1f} {:.1f} {:.1f}]'.format(*result))
                 draw(board, score)
     print('Score {}'.format(score))
     print('{} moves'.format(len(boards)))
@@ -125,15 +125,19 @@ if __name__ == '__main__':
     torch.manual_seed(seed)
     name = str(seed).zfill(5)
 
-    # torch.backends.cudnn.benchmark = True
-    # m_name = '20200125/fastnet_20_200_c128b4_p20_bs2048lr0.01d0.0_s0_best'
+    torch.backends.cudnn.benchmark = True
+    # m_name = '20200126/soft3.5_20_200_c64b3_p10_bs2048lr0.08d0.0_s4_best'
     # print('Using model: {}'.format(m_name))
-    # model = FastNet(channels=128, blocks=4)
+    # model = ConvNet(channels=64, blocks=3)
     # model.load_state_dict(torch.load('models/{}.pt'.format(m_name)))
-    # model.to('cuda')
+    # model.to('cuda') 
+    # model = torch.jit.trace(model, torch.randn(50, 16, 4, 4, dtype=torch.float32, device='cuda'))
+    m_name = '20200126/soft3.5_s4_jit.pth'
+    print(m_name)
+    model = torch.jit.load('models/' + m_name)
 
     start_time = time()
-    selfplay_fixed(name, number=50, verbose=args.verbose)
-    # selfplay(name, model, number=50, verbose=args.verbose)
+    # selfplay_fixed(name, number=50, verbose=args.verbose)
+    selfplay(name, model, number=50, verbose=args.verbose)
     total_time = time() - start_time
-    print(f'Took {total_time//60} minutes')
+    print(f'Took {total_time/60:.1f} minutes')

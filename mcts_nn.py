@@ -34,8 +34,7 @@ def mcts_nn(model, origin, number=10, device='cpu'):
                 b = torch.stack(b, dim=1).float()
                 preds = model(b.view(-1, 16, 4, 4))
                 preds = torch.argsort(preds.cpu(), dim=1, descending=True)
-                dead_s = array.move_batch(preds)
-                if dead_s:
+                if array.fast_move_batch(preds):
                     result.append(count)
                     break
                 count += 1
@@ -102,29 +101,27 @@ if __name__ == '__main__':
     print(f'Using {device}')
     torch.backends.cudnn.benchmark = True
 
-    # Takes 36.9 sec for 3 runs after 1 run benchmarking
-    # Ave score: 4.03
-    # Mean log: 64.6 sec, Min move: 9.95 sec: 6.5x speedup
-    # w/o benchmarking 10.3 vs w/ benchmarking 9.5: 8% savings
-    m = ConvNet(channels=128, blocks=5)
-    name = '20200123/onehot_20_200_c128b5_p20_bs2048lr0.01d0.0_s2_best'
-
-    # Takes 22.4 sec for 3 runs after 1 run benchmarking
-    # Ave score: 3.90
-    # m = FastNet(channels=128, blocks=4)
-    # name = '20200125/fastnet_20_200_c128b4_p20_bs2048lr0.01d0.0_s0_best'
+    t = time()
+    # m = ConvNet(channels=64, blocks=3)
+    # name = '20200126/soft3.5_20_200_c64b3_p10_bs2048lr0.08d0.0_s4_best'
+    name = '20200126/soft3.5_s4_jit.pth'
 
     print(name)
-    m.load_state_dict(torch.load('models/{}.pt'.format(name), map_location=device))
+    # m.load_state_dict(torch.load('models/{}.pt'.format(name), map_location=device))
+    # m.to(device)
+    # m.eval()
+    # m = torch.jit.trace(m, torch.randn(50, 16, 4, 4, dtype=torch.float32, device=device))
+    m = torch.jit.load('models/' + name)
+    print(time()-t)
+    # Using jit: 10.3  vs 9.1 sec, about 10% speed up
+    # Loading from jit saves 0.4 seconds compared to tracing each time
 
-    m.to(device)
-    m.eval()
     x = [generate_init_tiles() for _ in range(4)]
     with torch.no_grad():
-        # print(mcts_nn(m, x[0], number=50, device=device))
+        print(mcts_nn(m, x[0], number=50, device=device))
         t = time()
-        # print(mcts_nn(m, x[1], number=50, device=device))
-        # print(mcts_nn(m, x[2], number=50, device=device))
+        print(mcts_nn(m, x[1], number=50, device=device))
+        print(mcts_nn(m, x[2], number=50, device=device))
         print(mcts_nn(m, x[3], number=50, device=device))
         t = time() - t
     print('{0:.3f} seconds'.format(t))
