@@ -6,8 +6,8 @@ from tqdm import tqdm
 from torch import nn
 from torch.utils.data import DataLoader
 from game_dataset import OneHotConvGameDataset
-from network import ConvNet, FastNet
-from eval_nn import eval_nn
+from network import ConvNet
+from eval_nn import eval_nn_min
 
 
 def train_loop(model, data, loss_fn, optimizer):
@@ -52,15 +52,14 @@ def main(args):
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print('Using {}'.format(device))
-    if torch.backends.cudnn.enabled:
-        torch.backends.cudnn.benchmark = True
+    torch.backends.cudnn.benchmark = True
 
     train_set = OneHotConvGameDataset(args.path, args.t_tuple[0], args.t_tuple[1], device)
     valid_set = OneHotConvGameDataset(args.path, args.v_tuple[0], args.v_tuple[1], device)
     train_dat = DataLoader(train_set, batch_size=args.batch_size, shuffle=True)
     valid_dat = DataLoader(valid_set, batch_size=args.batch_size, shuffle=False)
 
-    m = FastNet(channels=args.channels, blocks=args.blocks)
+    m = ConvNet(channels=args.channels, blocks=args.blocks)
     if args.pretrained:
         m.load_state_dict(torch.load('models/{}.pt'.format(args.pretrained), map_location=device))
         print('Loaded ' + args.pretrained)
@@ -78,7 +77,7 @@ def main(args):
                                  weight_decay=args.decay)
     t_loss = []
     v_loss = []
-    log_scores = []
+    min_move = []
     best = 0.0
     timer = 0
     if args.patience == 0:
@@ -90,19 +89,19 @@ def main(args):
         print('Epoch: {}'.format(epoch))
         t_loss.append(train_loop(m, train_dat, loss_fn, optimizer))
         v_loss.append(valid_loop(m, valid_dat, loss_fn))
-        mean_ls, max_s, mean_m = eval_nn(m, number=200, device=device)
-        log_scores.append(mean_ls)
-        print(mean_ls, max_s, mean_m)
+        ave_min_move = eval_nn_min(m, number=50, repeats=4, device=device)
+        min_move.append(ave_min_move)
+        print(ave_min_move)
         timer += 1
-        if mean_ls >= best:
+        if ave_min_move >= best:
             print('** Best')
-            best = mean_ls
+            best = ave_min_move
             timer = 0
             torch.save(m.state_dict(), 'models/'+logname+'_best.pt')
         elif timer >= stop:
             print('Ran out of patience')
             print(f'Best score: {best}')
-            # torch.save(m.state_dict(), 'models/'+logname+f'_e{args.epoch}.pt')
+            # torch.save(m.state_dict(), 'models/'+logname+f'_e{epoch}.pt')
             break
         else:
             print(f'{stop - timer} epochs remaining')
@@ -110,13 +109,13 @@ def main(args):
     np.savez('logs/'+logname,
              t_loss=t_loss,
              v_loss=v_loss, 
-             log_scores=log_scores, 
+             min_move=min_move,
              params=args)
 
 
 if __name__ == '__main__':
     p = argparse.ArgumentParser()
-    p.add_argument('--path', type=str, default='selfplay/fixed/fixed',
+    p.add_argument('--path', type=str, default='selfplay/',
                    help='path to training data with prefix')
     p.add_argument('--t_tuple', type=int, nargs=2, default=(20, 200),
                    help='tuple for training data range')

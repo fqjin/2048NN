@@ -58,15 +58,53 @@ def eval_nn(model, name=None, origin=None, number=100, device='cpu', verbose=Fal
         print(np.mean(np.log10(scores+1)), np.amax(scores), np.mean(moves))
 
 
+def eval_nn_min(model, number=50, repeats=4, device='cpu'):
+    """Eval nn min move dead for use in training
+
+    Args:
+        model: pytorch model to predict moves
+        number: # of lines
+            Defaults to 50
+        repeats: # of repeats
+        device: torch device
+    """
+    result = []
+    model.eval()
+    with torch.no_grad():
+        for _ in range(repeats):
+            games = BoardArray([generate_init_tiles() for _ in range(number)])
+            count = 0
+            while games.boards:
+                b = np.array(games.boards, dtype=np.uint64)
+                data = []
+                for _ in range(16):
+                    data.append(b & 0xF)
+                    b >>= 4
+                b = torch.tensor(data,
+                                 dtype=torch.float32,
+                                 device=device).transpose(0, 1)
+                b = [b == i for i in range(16)]
+                b = torch.stack(b, dim=1).float()
+                preds = model(b.view(-1, 16, 4, 4))
+                preds = torch.argsort(preds.cpu(), dim=1, descending=True)
+                dead_s = games.move_batch(preds)
+                if dead_s:
+                    result.append(count)
+                    break
+                count += 1
+    return np.mean(result)
+
+
 if __name__ == '__main__':
     from time import time
-    from network import ConvNet, FastNet
+    from network import ConvNet
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     print(f'Using {device}')
 
-    names = [f'20200125/fastnet_20_200_c128b4_p20_bs2048lr0.01d0.0_s{s}_best' for s in range(5)]
+    names = ['minmove_20_200_c64b3_p10_bs2048lr0.1d0.0_s0_best']
     for name in names:
-        m = FastNet(**{'channels': 128, 'blocks': 4})
+        print(name)
+        m = ConvNet(**{'channels': 64, 'blocks': 3})
         m.load_state_dict(torch.load('models/{}.pt'.format(name), map_location=device))
         m.to(device)
         t = time()
