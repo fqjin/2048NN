@@ -1,62 +1,58 @@
 import torch
 import torch.nn as nn
-from board import SIZE, SIZE_SQRD
 
 
-class Fixed:
-    def __init__(self, order=[3.0, 2.0, 1.0, 0.0]):
-        """
-        :param order: Argmax move order
-        """
-        self.out = torch.tensor(order)
-
-    def eval(self):
-        pass
+class FixedNet(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.output = torch.tensor([3.0, 2.0, 0.0, 1.0], dtype=torch.float32)
+        self.output = nn.LogSoftmax(dim=0)(self.output)
 
     def forward(self, x):
         b = x.size(0)
-        return self.out.repeat(b, 1)
+        return self.output.repeat(b, 1)
 
 
-class RandNet:
-    def __init__(self):
-        pass
-
-    def eval(self):
-        pass
+class DenseNet(nn.Module):
+    """Feedforward fully connected network"""
+    def __init__(self, channels=16, blocks=0):
+        super().__init__()
+        self.in_block = nn.Sequential(
+            nn.Linear(16, channels, bias=True),
+            nn.ReLU(inplace=True)
+        )
+        mid = []
+        for _ in range(blocks):
+            mid.append(nn.Linear(channels, channels, bias=True))
+            mid.append(nn.ReLU(inplace=True))
+        self.mid_block = nn.Sequential(
+            *mid
+        )
+        self.out_block = nn.Sequential(
+            nn.Linear(channels, 4, bias=True),
+            nn.LogSoftmax(dim=1)
+        )
 
     def forward(self, x):
-        b = x.size(0)
-        return torch.randn((b, 4))
-
-
-class TestNet(nn.Module):
-    def __init__(self):
-        super(TestNet, self).__init__()
-        self.layer = nn.Linear(SIZE_SQRD, 4)
-        self.soft = nn.LogSoftmax(dim=1)
-
-    def forward(self, x):
-        x = x.view(-1, SIZE_SQRD)
-        x = self.layer(x)
-        x = self.soft(x)
+        x = self.in_block(x)
+        x = self.mid_block(x)
+        x = self.out_block(x)
         return x
 
 
 class ConvNet(nn.Module):
-    """Architecture based on AlphaZero Paper
+    """Residual convolutional network
 
     Args:
         channels: Defaults to 16 (256 in paper)
-        num_blocks: Defaults to 6 (19 in paper)
+        blocks: Defaults to 5 (19 in paper)
         out_c: Defaults to 4 (2 in paper)
-
     """
-    def __init__(self, channels=16, num_blocks=6, out_c=4):
-        super(ConvNet, self).__init__()
+    def __init__(self, channels=16, blocks=5, out_c=4):
+        super().__init__()
         self.relu = nn.ReLU(inplace=True)
         self.in_block = nn.Sequential(
-            nn.Conv2d(1, channels, 3, padding=1, bias=False),
+            nn.Conv2d(16, channels, 3, padding=1, bias=False),
             nn.BatchNorm2d(channels),
             nn.ReLU(inplace=True)
         )
@@ -67,7 +63,7 @@ class ConvNet(nn.Module):
                 nn.ReLU(inplace=True),
                 nn.Conv2d(channels, channels, 3, padding=1, bias=False),
                 nn.BatchNorm2d(channels)
-            ) for _ in range(num_blocks)
+            ) for _ in range(blocks)
         ])
         self.out_block = nn.Sequential(
             # I use 4 output channels (2 in paper)
@@ -75,7 +71,51 @@ class ConvNet(nn.Module):
             nn.BatchNorm2d(out_c),
             nn.ReLU(inplace=True)
         )
-        self.out_size = out_c * SIZE_SQRD
+        self.out_size = out_c * 16
+        self.policy = nn.Linear(self.out_size, 4)
+        self.soft = nn.LogSoftmax(dim=1)
+
+    def forward(self, x):
+        x = self.in_block(x)
+        for block in self.blocks:
+            x = x + block(x)
+            x = self.relu(x)
+        x = self.out_block(x)
+        x = x.view(-1, self.out_size)
+        x = self.policy(x)
+        x = self.soft(x)
+        return x
+
+
+class FastNet(nn.Module):
+    """Lighter weight convnet
+
+    Args:
+        channels: Defaults to 128
+        blocks: Defaults to 5
+        out_c: Defaults to 4
+    """
+    def __init__(self, channels=16, blocks=5, out_c=4):
+        super().__init__()
+        self.relu = nn.ReLU(inplace=True)
+        self.in_block = nn.Sequential(
+            nn.Conv2d(16, channels, 3, padding=1, bias=False),
+            nn.BatchNorm2d(channels),
+            nn.ReLU(inplace=True)
+        )
+        self.blocks = nn.ModuleList([
+            nn.Sequential(
+                nn.Conv2d(channels, channels, 3, padding=1, bias=False),
+                nn.BatchNorm2d(channels)
+            ) for _ in range(blocks)
+        ])
+        self.out_block = nn.Sequential(
+            # I use 4 output channels (2 in paper)
+            nn.Conv2d(channels, out_c, 1, padding=0, bias=False),
+            nn.BatchNorm2d(out_c),
+            nn.ReLU(inplace=True)
+        )
+        self.out_size = out_c * 16
         self.policy = nn.Linear(self.out_size, 4)
         self.soft = nn.LogSoftmax(dim=1)
 
@@ -92,7 +132,10 @@ class ConvNet(nn.Module):
 
 
 if __name__ == '__main__':
-    m = ConvNet(channels=32, num_blocks=5)
-    params = sum(p.numel() for p in m.parameters())
-    print(params)
-    # 93548
+    for m in [FixedNet(),  # 0
+              DenseNet(channels=64, blocks=5),  #   22148
+              ConvNet(channels=128, blocks=5),  # 1496588
+              ConvNet(channels=64, blocks=3),   #  231820
+              ]:
+        params = sum(p.numel() for p in m.parameters())
+        print(params)

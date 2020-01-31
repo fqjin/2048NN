@@ -1,197 +1,128 @@
+import argparse
 import numpy as np
+import random
 import torch
 from tqdm import tqdm
 from torch import nn
 from torch.utils.data import DataLoader
-from game_dataset import GameDataset
+from game_dataset import OneHotConvGameDataset
 from network import ConvNet
+from eval_nn import eval_nn_min
 
 
-def train_loop(model, data, loss_fn, optimizer):
-    model.train()
-    running_loss = 0
-    for x, y in tqdm(data):
-        optimizer.zero_grad()
-        pred = model(x)
-        loss = loss_fn(pred, y)
-        running_loss += loss.data.item()
-        loss.backward()
-        optimizer.step()
-    running_loss /= len(data)
-    print('Train Loss: {:.3f}'.format(running_loss))
-    print('Imp Acc: {:.3f}'.format(np.exp(-1*running_loss)))
-    return running_loss
+def main(args):
+    if args.name:
+        args.name += '_'
+    logname = f'{args.name}{args.t_tuple[0]}_{args.t_tuple[1]}_soft{args.soft}' \
+              f'c{args.channels}b{args.blocks}_p{args.patience}_' \
+              f'bs{args.batch_size}lr{args.lr}d{args.decay}_s{args.seed}'
+    print(logname)
 
+    random.seed(args.seed)
+    np.random.seed(args.seed)
+    torch.manual_seed(args.seed)
 
-def train_step(model, x, y, loss_fn, optimizer):
-    model.train()
-    optimizer.zero_grad()
-    pred = model(x)
-    loss = loss_fn(pred, y)
-    loss.backward()
-    optimizer.step()
-    return loss.data.item()
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print('Using {}'.format(device))
+    torch.backends.cudnn.benchmark = True
 
+    train_set = OneHotConvGameDataset(args.path, args.t_tuple[0], args.t_tuple[1], device, soft=args.soft)
+    train_dat = DataLoader(train_set, batch_size=args.batch_size, shuffle=True)
 
-def valid_loop(model, data, loss_fn):
-    model.eval()
-    running_loss = 0
-    with torch.no_grad():
-        for x, y in data:
-            pred = model(x)
-            loss = loss_fn(pred, y)
-            running_loss += loss.data.item()
-    running_loss /= len(data)
-    print('Valid Loss: {:.3f}'.format(running_loss))
-    print('Imp Acc: {:.3f}'.format(np.exp(-1*running_loss)))
-    return running_loss
-
-
-def main(t_tuple,
-         v_tuple,
-         epochs,
-         lr,
-         batch_size=256,
-         momentum=0.9,
-         decay=1e-4,
-         save_period=50,
-         pretrained=None,
-         path='selfplay/',
-         net_params=None,
-         ):
-    if net_params is None:
-        net_params = dict(channels=32, num_blocks=4)
-    start, end = t_tuple
-    logname = '{}_{}_epox{}_lr{}'.format(start, end, epochs, lr)
-
-    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-    train_set = GameDataset(path, start, end, device, augment=False)
-    valid_set = GameDataset(path, v_tuple[0], v_tuple[1], device, augment=False)
-    train_dat = DataLoader(train_set, batch_size=batch_size, shuffle=True)
-    valid_dat = DataLoader(valid_set, batch_size=batch_size, shuffle=False)
-
-    m = ConvNet(**net_params)
-    if pretrained is not None:
-        m.load_state_dict(torch.load('models/{}.pt'.format(pretrained)))
-        print('Loaded ' + pretrained)
-        logname += 'pre'
+    m = ConvNet(channels=args.channels, blocks=args.blocks)
+    if args.pretrained:
+        m.load_state_dict(torch.load('models/{}.pt'.format(args.pretrained), map_location=device))
+        print('Loaded ' + args.pretrained)
+        logname = 'pre_'+logname
     m.to(device)
-    torch.save(m.state_dict(), 'models/'+logname+'_e0.pt')
-    loss_fn = nn.NLLLoss()
-    optimizer = torch.optim.SGD(m.parameters(),
-                                lr=lr,
-                                momentum=momentum,
-                                nesterov=True,
-                                weight_decay=decay)
+    loss_fn = nn.KLDivLoss(reduction='batchmean')
+    optimizer = torch.optim.Adam(m.parameters(),
+                                 lr=args.lr,
+                                 weight_decay=args.decay)
     t_loss = []
-    v_loss = []
-    for epoch in range(epochs):
+    min_move = []
+    best = 0.0
+    timer = 0
+    if args.patience == 0:
+        stop = args.epochs
+    else:
+        stop = args.patience
+
+    data_len = len(train_dat)
+    eval_times = (data_len // 3,
+                  data_len*2 //3,
+                  data_len)
+    # eval_times = (data_len // 2,
+    #               data_len)
+    # eval_times = (data_len,)
+    m.train()
+    for epoch in range(args.epochs):
         print('-' * 10)
         print('Epoch: {}'.format(epoch))
-        t_loss.append(train_loop(m, train_dat, loss_fn, optimizer))
-        v_loss.append(valid_loop(m, valid_dat, loss_fn))
-        if epoch % save_period == save_period-1:
-            torch.save(m.state_dict(), 'models/'+logname+'_e{}.pt'.format(epoch))
+        timer += 1
 
-    params = {
-        't_tuple': t_tuple,
-        'v_tuple': v_tuple,
-        'epochs': epochs,
-        'lr': lr,
-        'batch_size': batch_size,
-        'decay': decay,
-        'momentum': momentum,
-        'pretrained': pretrained
-    }
-    np.savez('logs/'+logname, t_loss=t_loss, v_loss=v_loss, params=params)
+        i = 0
+        is_best = False
+        running_loss = 0
+        for x, y in tqdm(train_dat):
+            optimizer.zero_grad()
+            pred = m(x)
+            loss = loss_fn(pred, y)
+            running_loss += loss.data.item()
+            loss.backward()
+            optimizer.step()
+            i += 1
+            if i in eval_times:
+                m.eval()
+                ave_min_move = eval_nn_min(m, number=50, repeats=5, device=device)
+                m.train()
+                min_move.append(ave_min_move)
+                if ave_min_move >= best:
+                    tqdm.write(str(ave_min_move) + ' ** Best')
+                    is_best = True
+                    best = ave_min_move
+                    timer = 0
+                    torch.save(m.state_dict(), 'models/' + logname + '_best.pt')
+                else:
+                    tqdm.write(str(ave_min_move))
+        running_loss /= data_len
+        print('Train mLoss: {:.3f}'.format(1e3 * running_loss))
+        t_loss.append(running_loss)
 
+        if timer >= stop:
+            print('Ran out of patience')
+            print(f'Best score: {best}')
+            # torch.save(m.state_dict(), 'models/'+logname+f'_e{epoch}.pt')
+            break
+        else:
+            print(f'{stop - timer} epochs remaining')
 
-def cyclic(t_tuple,
-           v_tuple,
-           epochs,
-           lr_tuple,
-           mom_tuple,
-           batch_size=256,
-           decay=1e-4,
-           pretrained=None,
-           path='selfplay/',
-           net_params=None,
-           ):
-    params = locals()
-    if net_params is None:
-        net_params = dict(channels=32, num_blocks=4)
-    start, end = t_tuple
-    logname = '{}_{}_epox{}_clr{}'.format(start, end, epochs, lr_tuple[0])
-
-    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-    train_set = GameDataset(path, start, end, device, augment=False)
-    train_dat = DataLoader(train_set, batch_size=batch_size, shuffle=True)
-    if v_tuple is not None:
-        valid_set = GameDataset(path, v_tuple[0], v_tuple[1], device, augment=False)
-        valid_dat = DataLoader(valid_set, batch_size=batch_size, shuffle=False)
-
-    steps = epochs * len(train_dat)
-    lr = np.geomspace(lr_tuple[0], lr_tuple[1], steps//2)
-    lr = np.concatenate([lr,
-                         np.flip(lr[:-1]),
-                         # np.geomspace(lr[0], lr[0]/10, epochs//10+1)[1:],
-                         ])
-    momentum = np.linspace(mom_tuple[0], mom_tuple[1], steps//2)
-    momentum = np.concatenate([momentum,
-                               np.flip(momentum[:-1]),
-                               # np.full(epochs//10, momentum[0]),
-                               ])
-
-    m = ConvNet(**net_params)
-    if pretrained is not None:
-        m.load_state_dict(torch.load('models/{}.pt'.format(pretrained)))
-        print('Loaded ' + pretrained)
-        logname += 'pre'
-    m.to(device)
-    # torch.save(m.state_dict(), 'models/'+logname+'_e0.pt')
-    loss_fn = nn.NLLLoss()
-    optimizer = torch.optim.SGD(m.parameters(),
-                                lr=lr[0],
-                                momentum=momentum[0],
-                                nesterov=True,
-                                weight_decay=decay)
-    running_loss = []
-    t_loss = []
-    v_loss = []
-    train_iter = iter(train_dat)
-    for step in tqdm(range(len(lr))):
-        for param_group in optimizer.param_groups:
-            param_group['lr'] = lr[step]
-            param_group['momentum'] = momentum[step]
-        try:
-            x, y = next(train_iter)
-        except StopIteration:
-            train_iter = iter(train_dat)
-            x, y = next(train_iter)
-
-        running_loss.append(train_step(m, x, y, loss_fn, optimizer))
-        if (step+1) % len(train_dat) == 0:
-            print('-' * 10)
-            print('Epoch: {0}, LR: {1:.3f}'.format(step//len(train_dat), lr[step]))
-            t_loss.append(np.mean(running_loss))
-            running_loss = []
-            print('Train Loss: {:.3f}'.format(t_loss[-1]))
-            print('Imp Acc: {:.3f}'.format(np.exp(-1 * t_loss[-1])))
-            if v_tuple is not None:
-                v_loss.append(valid_loop(m, valid_dat, loss_fn))
-
-    torch.save(m.state_dict(), 'models/'+logname+'_e{}.pt'.format('x'))
-    np.savez('logs/'+logname, t_loss=t_loss, v_loss=v_loss, lr=lr, params=params)
+    np.savez('logs/'+logname,
+             t_loss=t_loss,
+             min_move=min_move,
+             params=args)
 
 
 if __name__ == '__main__':
-    cyclic(t_tuple=(0, 800), v_tuple=None,
-           lr_tuple=(0.001, 0.001),
-           mom_tuple=(0.95, 0.95),
-           batch_size=1024,
-           epochs=5,
-           decay=0.001,
-           path='selfplay/min_move_dead/min',
-           net_params=dict(channels=32, num_blocks=5),
-           pretrained='20190819/0_700_epox45_clr0.01_ex'
-           )
+    p = argparse.ArgumentParser()
+    p.add_argument('--path', type=str, default='selfplay/',
+                   help='path to training data with prefix')
+    p.add_argument('--t_tuple', type=int, nargs=2, default=(20, 200),
+                   help='tuple for training data range')
+    p.add_argument('--channels', type=int, default=64)
+    p.add_argument('--blocks', type=int, default=5)
+    p.add_argument('--epochs', type=int, default=100)
+    p.add_argument('--patience', type=int, default=0,
+                   help='Early stopping based on log score eval. '
+                        'If zero, no early stopping.')
+    p.add_argument('--batch_size', type=int, default=2048)
+    p.add_argument('--lr', type=float, default=0.01)
+    p.add_argument('--decay', type=float, default=0.0)
+    p.add_argument('--soft', type=float, default=3.5)
+    p.add_argument('--name', type=str, default='',
+                   help='Additional prepend output name')
+    p.add_argument('--seed', type=int, default=0)
+    p.add_argument('--pretrained', type=str, default='',
+                   help='Path to network to continue training')
+
+    main(p.parse_args())

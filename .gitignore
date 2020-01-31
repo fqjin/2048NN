@@ -15,11 +15,11 @@ nohup.out
 papers
 logs
 models
-ax_botorch/unused
+selfplay
+ax_botorch
+*.npy
 *.npz
 *.pt
+merge_tables.pickle
 
 # Exceptions
-!mean_log_score/00000.npz
-!mean_log_score/00079.npz
-!mean_log_score/00100.npz

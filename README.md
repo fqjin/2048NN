@@ -1,14 +1,24 @@
 # 2048NN
 ### Train a neural network to play 2048
-There are many approaches to an AI algorithm that plays the game of "2048".
-This project uses a policy neural network and Monte Carlo search to find the optimal moves.
+This project uses a policy network and tree search to find the optimal moves.
 The neural network is trained through self-play reinforcement learning.
 
 
+### Nibble
+* Changed board processing code to use nibbles and bitwise operators, as proposed in github/nneonneo/2048-ai.
+* `play_fixed` is 80 times faster
+* `play_fixed_batch` is 11 times faster (previous batch methods were 7.5x faster, new method has no batch acceleration)
+* `mcts_fixed_batch` (mean log score) is 4.7 times faster
+
+### Other changes
+* Neural network changed from convolutional network to full connected network operating on the flattened 16 tiles.
+* Soft classification targets during training.
+
+
 ### Milestones:
-* First 2048 tile achieved (game 0) using fixed move order 
-* First 4096 tile achieved (game 79) using model `20190625/10_60_epox60_lr0.125_e49`
-* First 8192 tile achieved (game 100) using model `20190710/80_100_epox10_lr0.0043pre_e9`
+* First 2048 tile achieved: mcts_fixed 50 lines per move (98/200)
+* First 4096 tile achieved: mcts_fixed 50 lines per move (5/200)
+* First 8192 tile achieved: ...
 
 
 ### Findings:
