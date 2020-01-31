@@ -120,7 +120,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     seed = args.seed
-    if seed < 400:
+    if seed < 600:
         raise ValueError('Seed is {}'.format(seed))
     random.seed(seed)
     np.random.seed(seed)
@@ -128,17 +128,17 @@ if __name__ == '__main__':
     name = str(seed).zfill(5)
 
     torch.backends.cudnn.benchmark = True
-    # m_name = '20200128/20_400_soft3.5c64b3_p10_bs2048lr0.08d0.0_s2pre_best'
+    # m_name = '20200130/0_600_soft3.5c64b3_p10_bs2048lr0.08d0.0_s7pre_best'
     # print('Using model: {}'.format(m_name))
     # model = ConvNet(channels=64, blocks=3)
     # model.load_state_dict(torch.load('models/{}.pt'.format(m_name)))
     # model.to('cuda') 
     # model.eval()
     # model = torch.jit.trace(model, torch.randn(50, 16, 4, 4, dtype=torch.float32, device='cuda'))
-    # torch.jit.save(model, 'models/20200128/best_s2_jit.pth')
+    # torch.jit.save(model, 'models/20200130/best_s7_jit.pth')
     # print('Jit traced model saved')
     # raise SystemExit
-    m_name = '20200128/best_s2_jit.pth'
+    m_name = '20200130/best_s7_jit.pth'
     print(m_name)
     model = torch.jit.load('models/' + m_name)
 
