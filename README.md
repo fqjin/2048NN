@@ -4,21 +4,23 @@ This project uses a policy network and tree search to find the optimal moves.
 The neural network is trained through self-play reinforcement learning.
 
 
-### Nibble
-* Changed board processing code to use nibbles and bitwise operators, as proposed in github/nneonneo/2048-ai.
+### The nibble update
+* Changed board engine to use nibbles and bitwise operators, as proposed in github/nneonneo/2048-ai.
 * `play_fixed` is 80 times faster
 * `play_fixed_batch` is 11 times faster (previous batch methods were 7.5x faster, new method has no batch acceleration)
 * `mcts_fixed_batch` (mean log score) is 4.7 times faster
+* Unfortunately, network forward is still the bottleneck.
 
 ### Other changes
-* Neural network changed from convolutional network to full connected network operating on the flattened 16 tiles.
 * Soft classification targets during training.
 
 
 ### Milestones:
-* First 2048 tile achieved: mcts_fixed 50 lines per move (98/200)
-* First 4096 tile achieved: mcts_fixed 50 lines per move (5/200)
-* First 8192 tile achieved: ...
+Network name: % policy games that acheive 2048
+`20200126/soft3.5_20_200_c64b3_p10_bs2048lr0.08d0.0_s4_best`:  0.004
+`20200128/20_400_soft3.5c64b3_p10_bs2048lr0.08d0.0_s2pre_best`:  0.0188
+`20200130/0_600_soft3.5c64b3_p10_bs2048lr0.08d0.0_s7pre_best`:  0.042
+``: 0.
 
 
 ### Findings:

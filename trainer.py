@@ -49,12 +49,15 @@ def main(args):
         stop = args.patience
 
     data_len = len(train_dat)
-    eval_times = (data_len // 3,
-                  data_len*2 //3,
-                  data_len)
-    # eval_times = (data_len // 2,
-    #               data_len)
-    # eval_times = (data_len,)
+    blocks = int( np.round(np.diff(args.t_tuple) / 200))
+    print(f'{blocks} blocks')
+    eval_time_dict = {
+        1: (data_len,),
+        2: (data_len // 2, data_len),
+        3: (data_len // 3, data_len*2 // 3, data_len),
+        4: (data_len // 4, data_len // 2, data_len*3 // 4, data_len),
+    }
+    eval_times = eval_time_dict[blocks]
     m.train()
     for epoch in range(args.epochs):
         print('-' * 10)
@@ -62,7 +65,6 @@ def main(args):
         timer += 1
 
         i = 0
-        is_best = False
         running_loss = 0
         for x, y in tqdm(train_dat):
             optimizer.zero_grad()
@@ -79,7 +81,6 @@ def main(args):
                 min_move.append(ave_min_move)
                 if ave_min_move >= best:
                     tqdm.write(str(ave_min_move) + ' ** Best')
-                    is_best = True
                     best = ave_min_move
                     timer = 0
                     torch.save(m.state_dict(), 'models/' + logname + '_best.pt')
@@ -110,13 +111,13 @@ if __name__ == '__main__':
     p.add_argument('--t_tuple', type=int, nargs=2, default=(20, 200),
                    help='tuple for training data range')
     p.add_argument('--channels', type=int, default=64)
-    p.add_argument('--blocks', type=int, default=5)
-    p.add_argument('--epochs', type=int, default=100)
-    p.add_argument('--patience', type=int, default=0,
+    p.add_argument('--blocks', type=int, default=3)
+    p.add_argument('--epochs', type=int, default=1000)
+    p.add_argument('--patience', type=int, default=10,
                    help='Early stopping based on log score eval. '
                         'If zero, no early stopping.')
     p.add_argument('--batch_size', type=int, default=2048)
-    p.add_argument('--lr', type=float, default=0.01)
+    p.add_argument('--lr', type=float, default=0.08)
     p.add_argument('--decay', type=float, default=0.0)
     p.add_argument('--soft', type=float, default=3.5)
     p.add_argument('--name', type=str, default='',
