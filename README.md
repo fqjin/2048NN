@@ -17,10 +17,14 @@ The neural network is trained through self-play reinforcement learning.
 
 ### Milestones:
 Network name: % policy games that acheive 2048
-`20200126/soft3.5_20_200_c64b3_p10_bs2048lr0.08d0.0_s4_best`:  0.004
-`20200128/20_400_soft3.5c64b3_p10_bs2048lr0.08d0.0_s2pre_best`:  0.0188
-`20200130/0_600_soft3.5c64b3_p10_bs2048lr0.08d0.0_s7pre_best`:  0.042
-``: 0.
+
+| Network Name | % Policy games acheiving 2048 |
+|---|---|
+| `20200126/soft3.5_20_200_c64b3_p10_bs2048lr0.08d0.0_s4_best` | 0.4 |
+| `20200128/20_400_soft3.5c64b3_p10_bs2048lr0.08d0.0_s2pre_best` | 1.88 |
+| `20200130/0_600_soft3.5c64b3_p10_bs2048lr0.08d0.0_s7pre_best` | 4.2 |
+| `20200205/0_800_soft3.0c64b3_p10_bs2048lr0.1d0.0_s0_best` | 6.16 |
+| x | x |
 
 
 ### Findings:
