@@ -55,7 +55,8 @@ def main(args):
         1: (data_len,),
         2: (data_len // 2, data_len),
         3: (data_len // 3, data_len*2 // 3, data_len),
-        4: (data_len // 4, data_len // 2, data_len*3 // 4, data_len),
+        4: (data_len // 4, data_len*2 // 4, data_len*3 // 4, data_len),
+        5: (data_len // 5, data_len*2 // 5, data_len*3 // 5, data_len*4 // 5, data_len),
     }
     eval_times = eval_time_dict[blocks]
     m.train()

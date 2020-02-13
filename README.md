@@ -24,6 +24,7 @@ Network name: % policy games that acheive 2048
 | `20200128/20_400_soft3.5c64b3_p10_bs2048lr0.08d0.0_s2pre_best` | 1.88 |
 | `20200130/0_600_soft3.5c64b3_p10_bs2048lr0.08d0.0_s7pre_best` | 4.2 |
 | `20200205/0_800_soft3.0c64b3_p10_bs2048lr0.1d0.0_s0_best` | 6.16 |
+| `20200207/0_1000_soft3.0c64b3_p10_bs2048lr0.1d0.0_s7_best` | 7.32 |
 | x | x |
 
 

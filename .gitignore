@@ -20,6 +20,7 @@ ax_botorch
 *.npy
 *.npz
 *.pt
+*.sh
 merge_tables.pickle
 
 # Exceptions
