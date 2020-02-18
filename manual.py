@@ -42,6 +42,7 @@ def play_manual(board=None):
         curses.endwin()
         print('Game Over')
         print('Score: {}'.format(score))
+        return board
 
 
 def curses_draw(screen, x, score):

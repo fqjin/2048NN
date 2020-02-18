@@ -2,6 +2,7 @@ import argparse
 import numpy as np
 import random
 import torch
+from time import time
 from tqdm import tqdm
 from torch import nn
 from torch.utils.data import DataLoader
@@ -49,23 +50,12 @@ def main(args):
         stop = args.patience
 
     data_len = len(train_dat)
-    blocks = int( np.round(np.diff(args.t_tuple) / 200))
-    print(f'{blocks} blocks')
-    eval_time_dict = {
-        1: (data_len,),
-        2: (data_len // 2, data_len),
-        3: (data_len // 3, data_len*2 // 3, data_len),
-        4: (data_len // 4, data_len*2 // 4, data_len*3 // 4, data_len),
-        5: (data_len // 5, data_len*2 // 5, data_len*3 // 5, data_len*4 // 5, data_len),
-    }
-    eval_times = eval_time_dict[blocks]
-    m.train()
     for epoch in range(args.epochs):
         print('-' * 10)
         print('Epoch: {}'.format(epoch))
         timer += 1
 
-        i = 0
+        m.train()
         running_loss = 0
         for x, y in tqdm(train_dat):
             optimizer.zero_grad()
@@ -74,22 +64,24 @@ def main(args):
             running_loss += loss.data.item()
             loss.backward()
             optimizer.step()
-            i += 1
-            if i in eval_times:
-                m.eval()
-                ave_min_move = eval_nn_min(m, number=50, repeats=5, device=device)
-                m.train()
-                min_move.append(ave_min_move)
-                if ave_min_move >= best:
-                    tqdm.write(str(ave_min_move) + ' ** Best')
-                    best = ave_min_move
-                    timer = 0
-                    torch.save(m.state_dict(), 'models/' + logname + '_best.pt')
-                else:
-                    tqdm.write(str(ave_min_move))
         running_loss /= data_len
+        if epoch == 2 and running_loss > 210/1000:
+            stop = 0
         print('Train mLoss: {:.3f}'.format(1e3 * running_loss))
         t_loss.append(running_loss)
+        
+        m.eval()
+        time1 = time()
+        ave_min_move = eval_nn_min(m, number=10, repeats=40, device=device)
+        time_str = ', took {:.0f} seconds'.format(time()-time1)
+        min_move.append(ave_min_move)
+        if ave_min_move >= best:
+            tqdm.write(str(ave_min_move) + ' ** Best' + time_str)
+            best = ave_min_move
+            timer = 0
+            torch.save(m.state_dict(), 'models/' + logname + '_best.pt')
+        else:
+            tqdm.write(str(ave_min_move) + time_str)
 
         if timer >= stop:
             print('Ran out of patience')
@@ -118,9 +110,9 @@ if __name__ == '__main__':
                    help='Early stopping based on log score eval. '
                         'If zero, no early stopping.')
     p.add_argument('--batch_size', type=int, default=2048)
-    p.add_argument('--lr', type=float, default=0.08)
+    p.add_argument('--lr', type=float, default=0.1)
     p.add_argument('--decay', type=float, default=0.0)
-    p.add_argument('--soft', type=float, default=3.5)
+    p.add_argument('--soft', type=float, default=3.0)
     p.add_argument('--name', type=str, default='',
                    help='Additional prepend output name')
     p.add_argument('--seed', type=int, default=0)
