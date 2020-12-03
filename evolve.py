@@ -12,7 +12,7 @@ def copynet(net):
 
 
 class NetworkPopulation:
-    def __init__(self, networks, eval_num=100, device='cpu',
+    def __init__(self, networks, eval_num=100,
                  keep_ratio=5, recombine_prob=0.2, mutation_rate=0.01):
         if isinstance(networks, list):
             self.networks = np.array(networks)
@@ -24,9 +24,7 @@ class NetworkPopulation:
         self.mutation_rate = mutation_rate
         assert self.popsize >= keep_ratio
         self.eval_num = eval_num
-        self.device = device
-        for m in self.networks:
-            m.to(device)
+        self.device = next(networks[0].parameters()).device
         self.evals = np.zeros(self.popsize)
 
     def eval(self):
@@ -66,4 +64,18 @@ class NetworkPopulation:
             if random.getrandbits(1):
                 p1.data = p2.data
         return network1
+
+
+if __name__ == '__main__':
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    nets = [ConvNet(64, 3) for _ in range(50)]
+    for n in nets:
+        n.to(device)
+    pop = NetworkPopulation(nets)
+    eval_array = []
+    for _ in range(3):
+        pop.eval()
+        print(pop.evals)
+        eval_array.append(pop.evals)
+        pop = NetworkPopulation(pop.select())
 
