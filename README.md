@@ -13,7 +13,8 @@ The neural network is trained through self-play reinforcement learning.
 
 ### Other changes
 * Soft classification targets during training.
-
+* min_move_dead playouts
+* Fixed10: On 20200213, remade all training data using fixed LUDR with 10 playouts, min_move_dead averaged over 4 runs.
 
 ### Milestones:
 Network name: % policy games that acheive 2048
@@ -25,6 +26,8 @@ Network name: % policy games that acheive 2048
 | `20200130/0_600_soft3.5c64b3_p10_bs2048lr0.08d0.0_s7pre_best` | 4.2 |
 | `20200205/0_800_soft3.0c64b3_p10_bs2048lr0.1d0.0_s0_best` | 6.16 |
 | `20200207/0_1000_soft3.0c64b3_p10_bs2048lr0.1d0.0_s7_best` | 7.32 |
+| `20200213/0_800_soft3.0c64b3_p10_bs2048lr0.1d0.0_s2_best` | 9.0 |
+| `20200213/0_3400_soft3.0c64b3_p10_bs2048lr0.1d0.0_s0_best` | 24.0 |
 | x | x |
 
 
@@ -48,6 +51,8 @@ No bias is used for the initial move.
 This Monte Carlo playout process results in much stronger moves than the policy generating the moves during playouts. 
 These stronger moves allow the main game line to reach much higher scores and tile values.
 The stronger moves from the playout process are then used for training the neural network to increase the strength of its policy, which feeds back into stronger playout results.
+
+TODO: describe min_move_dead
 
 
 #### Dependencies:
