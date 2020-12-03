@@ -37,13 +37,13 @@ class NetworkPopulation:
             print(mean_log_score, max_score, mean_moves)
             self.evals[i] = mean_log_score
 
-    def select(self):
         ind = np.argsort(-1*self.evals)
         self.networks = self.networks[ind]
         self.evals = self.evals[ind]
+
+    def select(self):
         top10 = self.networks[:(self.popsize // self.keep_ratio)]
         # TODO: Do kept networks need to be re-evaluated or not?
-
         remain = []
         for r in np.random.rand(self.popsize - len(top10)):
             if r < self.recombine_prob:
